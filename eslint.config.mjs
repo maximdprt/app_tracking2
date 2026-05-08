@@ -1,18 +1,33 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import js from "@eslint/js";
+import parser from "@typescript-eslint/parser";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
+import reactHooks from "eslint-plugin-react-hooks";
+import prettier from "eslint-config-prettier";
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-  ]),
-]);
-
-export default eslintConfig;
+export default [
+  js.configs.recommended,
+  {
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parser,
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        fetch: "readonly",
+      },
+    },
+    plugins: {
+      "@typescript-eslint": tsPlugin,
+      "react-hooks": reactHooks,
+    },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
+      "react-hooks/rules-of-hooks": "error",
+    },
+  },
+  prettier,
+];
