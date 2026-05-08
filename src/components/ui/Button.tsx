@@ -1,33 +1,23 @@
-import { Pressable, Text } from "react-native";
+"use client";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
-interface ButtonProps {
-  label: string;
-  onPress?: () => void;
-  variant?: ButtonVariant;
-  disabled?: boolean;
-}
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        primary: "bg-primary text-black hover:brightness-110",
+        secondary: "border border-white/10 bg-surface text-text hover:border-primary/50",
+      },
+    },
+    defaultVariants: { variant: "primary" },
+  },
+);
 
-const variantStyles: Record<ButtonVariant, string> = {
-  primary: "bg-primary",
-  secondary: "bg-surfaceElevated border border-border",
-  ghost: "bg-transparent",
-  danger: "bg-error",
-};
+type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonVariants>;
 
-export function Button({ label, onPress, variant = "primary", disabled = false }: ButtonProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      disabled={disabled}
-      onPress={onPress}
-      className={`min-h-11 items-center justify-center rounded-xl px-4 ${variantStyles[variant]} ${
-        disabled ? "opacity-50" : "opacity-100"
-      }`}
-    >
-      <Text className="text-base font-semibold text-text">{label}</Text>
-    </Pressable>
-  );
+export function Button({ className, variant, ...props }: Props) {
+  return <button className={cn(buttonVariants({ variant }), className)} {...props} />;
 }

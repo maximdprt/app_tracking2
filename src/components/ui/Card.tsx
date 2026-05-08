@@ -1,11 +1,10 @@
-import { ReactNode } from "react";
-import { View } from "react-native";
+import { cn } from "@/lib/utils";
 
-interface CardProps {
-  children: ReactNode;
-  className?: string;
-}
-
-export function Card({ children, className = "" }: CardProps) {
-  return <View className={`rounded-2xl border border-border bg-surface p-4 ${className}`}>{children}</View>;
+export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("bg-surface rounded-2xl border border-white/10 p-5", className)}
+      {...props}
+    />
+  );
 }

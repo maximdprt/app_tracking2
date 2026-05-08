@@ -1,32 +1,15 @@
-import { Text, TextInput, View } from "react-native";
+import { cn } from "@/lib/utils";
 
-interface InputProps {
-  label: string;
-  value: string;
-  placeholder?: string;
-  onChangeText: (value: string) => void;
-  keyboardType?: "default" | "numeric" | "email-address";
-}
+type Props = React.InputHTMLAttributes<HTMLInputElement>;
 
-export function Input({
-  label,
-  value,
-  placeholder,
-  onChangeText,
-  keyboardType = "default",
-}: InputProps) {
+export function Input({ className, ...props }: Props) {
   return (
-    <View className="gap-2">
-      <Text className="text-sm text-textSecondary">{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        className="min-h-11 rounded-xl border border-border bg-surfaceElevated px-4 py-3 text-text"
-        value={value}
-        placeholder={placeholder}
-        placeholderTextColor="#6B6B73"
-        keyboardType={keyboardType}
-        onChangeText={onChangeText}
-      />
-    </View>
+    <input
+      className={cn(
+        "bg-surface text-text ring-primary/40 placeholder:text-muted h-11 w-full rounded-xl border border-white/10 px-3 text-sm outline-none focus:ring-2",
+        className,
+      )}
+      {...props}
+    />
   );
 }

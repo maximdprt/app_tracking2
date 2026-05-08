@@ -1,18 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  presets: [require("nativewind/preset")],
-  content: ["./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
       colors: {
-        background: "#0A0A0B",
-        surface: "#141416",
-        elevated: "#1C1C20",
-        border: "#2A2A2E",
-        primary: "#00E676",
-        accent: "#FF6B35",
-        text: "#FFFFFF",
-        textSecondary: "#A0A0A8",
+        background: "#0A0A0A",
+        surface: "#141414",
+        primary: "#A3E635",
+        secondary: "#F97316",
+        text: "#FAFAFA",
+        muted: "#737373",
+        protein: "#3B82F6",
+        carbs: "#F59E0B",
+        fats: "#EF4444",
       },
     },
   },

@@ -1,5 +1,4 @@
 node_modules
-.expo
-dist
-build
-package-lock.json
+.next
+out
+coverage
