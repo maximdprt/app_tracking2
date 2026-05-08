@@ -1,30 +1,18 @@
-# Lift SaaS (Phase 1)
+# Lift
 
-Next.js 15 SaaS rebuild for Lift with Supabase Auth and protected app shell.
+Phase 1 bootstrap Next.js 15 + Supabase Auth.
 
-## Setup
+## Scripts
 
-1. Install dependencies
-   ```bash
-   npm install
-   ```
-2. Copy environment file
-   ```bash
-   cp .env.local.example .env.local
-   ```
-3. Fill env values
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `MISTRAL_API_KEY`
-4. Start dev server
-   ```bash
-   npm run dev
-   ```
+- npm run dev
+- npm run build
+- npm run lint
+- npm run typecheck
 
-## Phase 1 scope
+## Env
 
-- Next.js App Router bootstrapped
-- Supabase browser/server clients and middleware session refresh
-- Login + Signup pages with zod + react-hook-form
-- Protected `(app)` layout and dashboard greeting
-- Sidebar shell with key SaaS routes
+Use `.env.local` with:
+
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- MISTRAL_API_KEY

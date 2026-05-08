@@ -1,20 +1,26 @@
-export class AppError extends Error {
-  constructor(
-    public code: "AUTH" | "VALIDATION" | "NOT_FOUND" | "PERMISSION" | "SERVER" | "NETWORK",
-    message: string,
-    public cause?: unknown,
-  ) {
-    super(message);
-  }
-}
+import { Tables } from "@/types/database";
 
-export function toUserMessage(err: unknown): string {
-  if (err instanceof AppError) {
-    if (err.code === "AUTH" && err.message.toLowerCase().includes("email not confirmed")) {
-      return "Confirme ton email avant de te connecter.";
-    }
-    if (err.code === "AUTH") return "Probleme d'authentification.";
-    if (err.code === "VALIDATION") return err.message;
-  }
-  return "Une erreur inattendue est survenue.";
-}
+export type Sex = "male" | "female";
+
+export type GoalType =
+  | "weight_loss"
+  | "recomposition"
+  | "maintenance"
+  | "muscle_gain"
+  | "performance";
+
+export type ActivityLevel = "sedentary" | "light" | "moderate" | "intense" | "very_intense";
+
+export type UserProfile = Tables<"users_profiles">;
+
+export type OnboardingFormValues = {
+  sex: Sex;
+  age: number;
+  height: number;
+  weight: number;
+  trainingFrequency: number;
+  averageSteps: number;
+  averageSleepHours: number;
+  goalType: GoalType;
+  goalDurationWeeks: number;
+};

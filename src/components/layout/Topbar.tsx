@@ -1,10 +1,14 @@
-import { format } from "date-fns";
+import { DateNavigator } from "@/components/shared/DateNavigator";
+import { SidebarMobile } from "@/components/layout/SidebarMobile";
 
 export function Topbar({ title }: { title: string }) {
   return (
-    <header className="mb-6 flex items-center justify-between">
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      <p className="text-muted font-mono text-sm">{format(new Date(), "dd/MM/yyyy")}</p>
+    <header className="border-border flex h-16 items-center justify-between border-b px-6">
+      <div className="flex items-center gap-3">
+        <SidebarMobile />
+        <p className="text-text-soft text-sm">{title}</p>
+      </div>
+      <DateNavigator />
     </header>
   );
 }

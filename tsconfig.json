@@ -19,8 +19,11 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "noUncheckedIndexedAccess": true
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
   },
   "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "supabase", ".expo", "app_expo_legacy"]
+  "exclude": ["node_modules", "supabase/functions"]
 }

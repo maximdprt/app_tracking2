@@ -1,0 +1,5 @@
+- ADR-001: Next.js 15 + App Router.
+- ADR-002: Supabase RLS only.
+- ADR-003: Onboarding 4 steps avec zod.
+- ADR-004: Query layer dediee.
+- ADR-005: cmdk pour navigation rapide.
