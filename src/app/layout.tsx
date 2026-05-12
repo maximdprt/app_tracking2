@@ -59,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             toastOptions={{
               classNames: {
                 toast:
-                  "border-[var(--lift-border-subtle)]! bg-[var(--lift-bg-card)]! text-[var(--lift-text-primary)]!",
+                  "!border-(--lift-border-subtle) !bg-(--lift-bg-card) !text-(--lift-text-primary)",
               },
             }}
           />

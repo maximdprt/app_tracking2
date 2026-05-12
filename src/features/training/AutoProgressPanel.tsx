@@ -73,7 +73,7 @@ export function AutoProgressPanel({ userId, exerciseNames }: Props) {
     <Card>
       <CardHeader>
         <CardTitle>
-          <Zap className="inline h-4 w-4 stroke-[1.5] text-[var(--lift-text-primary)]" /> Suggestions de progression
+          <Zap className="inline h-4 w-4 stroke-[1.5] text-(--lift-text-primary)" /> Suggestions de progression
         </CardTitle>
       </CardHeader>
 

@@ -29,7 +29,7 @@ export function BottomTabNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--lift-border-subtle)] bg-[var(--lift-bg-card)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-(--lift-border-subtle) bg-(--lift-bg-card) md:hidden"
       aria-label="Navigation principale"
     >
       <div className="mx-auto flex max-w-lg items-stretch justify-around px-1 pb-[env(safe-area-inset-bottom)] pt-1">
@@ -42,8 +42,8 @@ export function BottomTabNav() {
               className={cn(
                 "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-2 transition-colors",
                 active
-                  ? "text-[var(--lift-text-primary)]"
-                  : "text-[var(--lift-text-muted)]",
+                  ? "text-(--lift-text-primary)"
+                  : "text-(--lift-text-muted)",
               )}
             >
               <Icon className="h-5 w-5 stroke-[1.5]" aria-hidden />

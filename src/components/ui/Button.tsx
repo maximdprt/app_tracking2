@@ -11,7 +11,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-primary text-on-primary shadow-[var(--shadow-inner-primary)] hover:bg-primary-hover md-elevation-1 hover:md-elevation-2",
+          "bg-primary text-on-primary shadow-(--shadow-inner-primary) hover:bg-primary-hover md-elevation-1 hover:md-elevation-2",
         secondary:
           "border border-outline-variant bg-surface-2 text-text hover:border-outline hover:bg-surface-bright md-elevation-0",
         ghost: "text-text-soft hover:bg-surface-2 hover:text-text",

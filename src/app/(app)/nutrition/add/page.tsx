@@ -236,7 +236,7 @@ export default function AddMealPage() {
         columns={4}
       />
 
-      <Card className="border-[var(--lift-border-subtle)]">
+      <Card className="border-(--lift-border-subtle)">
         <CardHeader>
           <CardTitle className="text-base">Code-barres · Open Food Facts</CardTitle>
         </CardHeader>

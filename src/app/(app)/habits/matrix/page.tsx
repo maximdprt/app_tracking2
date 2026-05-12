@@ -28,12 +28,12 @@ function weekDates(anchor: Date): string[] {
 
 function cellClass(v: number | null | undefined, off: boolean): string {
   if (off)
-    return "border border-[var(--lift-border-divider)] bg-[var(--lift-bg-secondary)] opacity-45";
-  if (v === undefined || v === null) return "border border-[var(--lift-border-default)] bg-[var(--lift-bg-card)]";
+    return "border border-(--lift-border-divider) bg-(--lift-bg-secondary) opacity-45";
+  if (v === undefined || v === null) return "border border-(--lift-border-default) bg-(--lift-bg-card)";
   const n = Number(v);
-  if (n >= 1) return "border border-[var(--lift-accent-primary)] bg-[var(--lift-accent-primary)]";
-  if (n >= 0.5) return "border border-[var(--lift-text-tertiary)] bg-[var(--lift-text-tertiary)]";
-  return "border border-[var(--lift-border-strong)] bg-[var(--lift-bg-card)]";
+  if (n >= 1) return "border border-(--lift-accent-primary) bg-(--lift-accent-primary)";
+  if (n >= 0.5) return "border border-(--lift-text-tertiary) bg-(--lift-text-tertiary)";
+  return "border border-(--lift-border-strong) bg-(--lift-bg-card)";
 }
 
 export default function HabitsMatrixPage() {
@@ -172,12 +172,12 @@ export default function HabitsMatrixPage() {
 
       <PageHeader title="Routine" subtitle="Vue matrice — tape une case pour 0 → ½ → ✓." />
 
-      <Card className="border-[var(--lift-border-default)] bg-[var(--lift-bg-inverse)] text-[var(--lift-text-inverse)] md-elevation-1">
+      <Card className="border-(--lift-border-default) bg-(--lift-bg-inverse) text-(--lift-text-inverse) md-elevation-1">
         <CardHeader>
-          <CardTitle className="lift-display-lg text-[var(--lift-text-inverse)]">
+          <CardTitle className="lift-display-lg text-(--lift-text-inverse)">
             {score.toFixed(1)}%
           </CardTitle>
-          <CardDescription className="text-[color:color-mix(in_srgb,var(--lift-text-inverse)_72%,transparent)]">
+          <CardDescription className="text-[color-mix(in_srgb,var(--lift-text-inverse)_72%,transparent)]">
             Score hebdomadaire · semaine du {week[0]} au {week[6]}
           </CardDescription>
         </CardHeader>
@@ -196,11 +196,11 @@ export default function HabitsMatrixPage() {
           </Button>
         </Card>
       ) : (
-        <Card className="overflow-x-auto border-[var(--lift-border-subtle)]">
+        <Card className="overflow-x-auto border-(--lift-border-subtle)">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-[var(--lift-border-subtle)] bg-[var(--lift-bg-secondary)]">
-                <th className="sticky left-0 z-10 bg-[var(--lift-bg-secondary)] px-2 py-3 text-muted">
+              <tr className="border-b border-(--lift-border-subtle) bg-(--lift-bg-secondary)">
+                <th className="sticky left-0 z-10 bg-(--lift-bg-secondary) px-2 py-3 text-muted">
                   Jour
                 </th>
                 {habits.map((h) => (
@@ -212,8 +212,8 @@ export default function HabitsMatrixPage() {
             </thead>
             <tbody>
               {week.map((d) => (
-                <tr key={d} className="border-b border-[var(--lift-border-subtle)]">
-                  <td className="sticky left-0 z-10 bg-[var(--lift-bg-card)] px-2 py-2 whitespace-nowrap text-muted">
+                <tr key={d} className="border-b border-(--lift-border-subtle)">
+                  <td className="sticky left-0 z-10 bg-(--lift-bg-card) px-2 py-2 whitespace-nowrap text-muted">
                     {format(new Date(`${d}T12:00:00`), "EEE d", { locale: fr })}
                     {offDays.includes(d) ? " · off" : ""}
                   </td>

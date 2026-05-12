@@ -80,7 +80,7 @@ export default function DashboardPage() {
 
       {/* Hero — MacroRing */}
       <div className="grid gap-4 lg:grid-cols-12">
-        <Card className="border-[var(--lift-border-subtle)] bg-[var(--lift-bg-card)] p-6 sm:p-8 lg:col-span-12 md-elevation-1">
+        <Card className="border-(--lift-border-subtle) bg-(--lift-bg-card) p-6 sm:p-8 lg:col-span-12 md-elevation-1">
           <CardHeader>
             <div>
               <CardTitle className="lift-title-lg">Macros du jour</CardTitle>

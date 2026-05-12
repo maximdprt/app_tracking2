@@ -19,7 +19,7 @@ export function WeeklyCompareCard() {
       : 0;
 
   return (
-    <Card className="border-[var(--lift-border-subtle)] bg-[var(--lift-bg-secondary)] lg:col-span-12">
+    <Card className="border-(--lift-border-subtle) bg-(--lift-bg-secondary) lg:col-span-12">
       <CardHeader>
         <div>
           <CardTitle>Macros — semaine en cours vs précédente</CardTitle>
@@ -45,7 +45,7 @@ export function WeeklyCompareCard() {
           <p className="lift-label-sm text-muted">Δ calories</p>
           <p
             className={`lift-display-sm tracking-tight lift-num ${
-              pct > 3 ? "text-[var(--lift-accent-secondary)]" : pct < -3 ? "text-[var(--lift-accent-primary)]" : "text-text"
+              pct > 3 ? "text-(--lift-accent-secondary)" : pct < -3 ? "text-(--lift-accent-primary)" : "text-text"
             }`}
           >
             {pct > 0 ? "+" : ""}

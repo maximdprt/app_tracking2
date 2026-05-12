@@ -19,7 +19,7 @@ export function EmptyState({ icon: Icon, title, description, action, className }
       )}
     >
       <div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--lift-text-primary)_14%,transparent)_0%,transparent_70%)]">
-        <Icon className="h-6 w-6 stroke-[1.5] text-[var(--lift-text-primary)]" />
+        <Icon className="h-6 w-6 stroke-[1.5] text-(--lift-text-primary)" />
       </div>
       <h3 className="lift-title-md text-text">{title}</h3>
       {description ? <p className="mt-1 max-w-sm lift-body-sm text-text-soft">{description}</p> : null}

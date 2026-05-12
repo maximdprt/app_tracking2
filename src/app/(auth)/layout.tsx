@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <h1 className="max-w-xl text-5xl font-semibold leading-tight tracking-tight">
             Discipline.
             <br />
-            <span className="bg-gradient-to-br from-[var(--lift-text-primary)] to-[color-mix(in_srgb,var(--lift-text-primary)_45%,var(--lift-bg-background))] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-br from-(--lift-text-primary) to-[color-mix(in_srgb,var(--lift-text-primary)_45%,var(--lift-bg-background))] bg-clip-text text-transparent">
               Performance.
             </span>
             <br />

@@ -63,7 +63,7 @@ export default function CoachPage() {
           <CardHeader>
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 stroke-[1.5] text-[var(--lift-text-primary)]" />
+                <Sparkles className="h-4 w-4 stroke-[1.5] text-(--lift-text-primary)" />
                 Résumé du jour
               </CardTitle>
               <CardDescription>Synthèse de ta journée actuelle.</CardDescription>
@@ -109,7 +109,7 @@ export default function CoachPage() {
         <Card className="flex min-h-112 flex-col lg:col-span-7 lg:min-h-128">
           <CardHeader className="shrink-0">
             <CardTitle className="flex items-center gap-2">
-              <Bot className="h-4 w-4 stroke-[1.5] text-[var(--lift-text-primary)]" />
+              <Bot className="h-4 w-4 stroke-[1.5] text-(--lift-text-primary)" />
               Conversation
             </CardTitle>
             <CardDescription>Même historique que le coach accessible depuis le bouton flottant.</CardDescription>

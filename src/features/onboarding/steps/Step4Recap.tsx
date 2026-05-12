@@ -21,7 +21,7 @@ export function Step4Recap({ values, macros, tdee }: Props) {
         <h2 className="text-xl font-medium tracking-tight text-text sm:text-2xl">Voici ton plan</h2>
         <p className="mt-1 lift-body-sm text-text-soft">
           Calculs basés sur Mifflin-St Jeor + ton objectif{" "}
-          <span className="text-[var(--lift-text-primary)]">{goal.label.toLowerCase()}</span>.
+          <span className="text-(--lift-text-primary)">{goal.label.toLowerCase()}</span>.
         </p>
       </div>
 
