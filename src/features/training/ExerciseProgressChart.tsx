@@ -88,7 +88,10 @@ export function ExerciseProgressChart({ exerciseName, userId }: ExerciseProgress
 
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={sorted}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="color-mix(in srgb, var(--lift-border-default) 70%, transparent)"
+          />
           <XAxis
             dataKey="session_date"
             tick={{ fontSize: 10, fill: "var(--color-muted)" }}
@@ -107,10 +110,10 @@ export function ExerciseProgressChart({ exerciseName, userId }: ExerciseProgress
           />
           <Tooltip
             contentStyle={{
-              background: "#16181B",
-              border: "1px solid rgba(255,255,255,0.12)",
+              background: "var(--lift-bg-inverse)",
+              border: "1px solid var(--lift-border-default)",
               borderRadius: "12px",
-              color: "#F5F5F5",
+              color: "var(--lift-text-inverse)",
               fontSize: "12px",
             }}
             formatter={(v, name) => [
@@ -138,9 +141,9 @@ export function ExerciseProgressChart({ exerciseName, userId }: ExerciseProgress
             type="monotone"
             dataKey="max_volume"
             stroke="var(--color-muted)"
-            strokeWidth={2}
-            dot={{ r: 3, fill: "var(--color-muted)" }}
-            activeDot={{ r: 5 }}
+            strokeWidth={1.5}
+            dot={false}
+            activeDot={{ r: 4 }}
           />
         </LineChart>
       </ResponsiveContainer>

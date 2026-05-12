@@ -35,8 +35,8 @@ export default function SignupPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Crée ton compte</h2>
-        <p className="mt-1 text-sm text-text-soft">Quelques secondes et c'est parti.</p>
+        <h2 className="lift-display-md">Crée ton compte</h2>
+        <p className="lift-body-soft mt-1">Quelques secondes et c'est parti.</p>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4">

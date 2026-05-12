@@ -497,8 +497,8 @@ export default function AddMealPage() {
             {cart.length > 0 ? (
               <div className="mt-4 space-y-3 border-t border-border pt-4">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xs text-text-soft">Total</span>
-                  <span className="font-mono text-2xl font-semibold">
+                  <span className="lift-label">Total</span>
+                  <span className="lift-display-md lift-num">
                     {Math.round(totals.calories)} kcal
                   </span>
                 </div>

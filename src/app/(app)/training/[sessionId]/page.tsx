@@ -215,9 +215,9 @@ export default function SessionDetailPage({ params }: PageProps) {
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface/95 px-6 py-3 backdrop-blur-md lg:left-65">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] uppercase text-muted">Volume séance</p>
-              <p className="font-mono text-xl font-semibold">
-                {Math.round(sessionVolume)} <span className="text-xs text-text-soft">kg</span>
+              <p className="lift-label">Volume séance</p>
+              <p className="lift-display-md lift-num">
+                {Math.round(sessionVolume)} <span className="lift-body-soft">kg</span>
               </p>
             </div>
             <ConfirmDialog

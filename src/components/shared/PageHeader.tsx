@@ -12,18 +12,16 @@ export function PageHeader({ title, subtitle, actions, className }: PageHeaderPr
   return (
     <header
       className={cn(
-        "mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6 sm:mb-8 sm:pb-8",
+        "mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
     >
-      <div className="min-w-0 flex-1 space-y-1">
-        <h1 className="lift-display-md text-text">{title}</h1>
-        {subtitle ? (
-          <p className="max-w-2xl md-body-large text-text-soft">{subtitle}</p>
-        ) : null}
+      <div className="min-w-0">
+        <h1 className="lift-display-lg">{title}</h1>
+        {subtitle ? <p className="lift-body-soft mt-1">{subtitle}</p> : null}
       </div>
       {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">{actions}</div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
       ) : null}
     </header>
   );

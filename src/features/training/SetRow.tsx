@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Trophy, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -30,6 +30,12 @@ export function SetRow({ set, previousBestVolume, onDeleted }: SetRowProps) {
   const debouncedReps = useDebounce(reps, 800);
   const debouncedRpe = useDebounce(rpe, 800);
 
+  // Prevent firing auto-save mutations on initial mount (before user edits anything)
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+  }, []);
+
   const updateMutation = useMutation({
     mutationFn: async (patch: Partial<{ weight: number; reps: number; rpe: number; is_completed: boolean }>) => {
       const supabase = createClient();
@@ -53,23 +59,26 @@ export function SetRow({ set, previousBestVolume, onDeleted }: SetRowProps) {
     onError: (err) => toast.error(toUserMessage(err)),
   });
 
-  // Auto-save on debounced changes
+  // Auto-save on debounced changes — mountedRef guard prevents spurious writes on initial render
   useEffect(() => {
-    if (debouncedWeight !== set.weight) {
+    if (!mountedRef.current) return;
+    if (debouncedWeight !== (set.weight ?? 0)) {
       updateMutation.mutate({ weight: debouncedWeight });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedWeight]);
 
   useEffect(() => {
-    if (debouncedReps !== set.reps) {
+    if (!mountedRef.current) return;
+    if (debouncedReps !== (set.reps ?? 0)) {
       updateMutation.mutate({ reps: debouncedReps });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedReps]);
 
   useEffect(() => {
-    if (debouncedRpe !== set.rpe) {
+    if (!mountedRef.current) return;
+    if (debouncedRpe !== (set.rpe ?? 0)) {
       updateMutation.mutate({ rpe: debouncedRpe });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

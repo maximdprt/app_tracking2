@@ -3,6 +3,9 @@
  * NEVER import from a Client Component.
  */
 
+import { mealPhotoAnalysisSchema } from "./meal-photo-schema";
+import type { MealPhotoAnalysis } from "./meal-photo-schema";
+
 const MISTRAL_API = "https://api.mistral.ai/v1/chat/completions";
 const VISION_MODEL = "pixtral-large-latest";
 const MODEL = "mistral-large-latest";
@@ -59,28 +62,88 @@ export interface MealAnalysisResult {
   description: string;
 }
 
-export async function analyzeMealPhoto(
+/** Adapte le nouveau format (MealPhotoAnalysis) vers l'ancien type (MealAnalysisResult)
+ *  pour garantir la rétrocompat avec meal-photo/route.ts */
+function adaptToLegacy(analysis: MealPhotoAnalysis): MealAnalysisResult {
+  if (!analysis.is_food) {
+    throw new Error(`Cette photo n'est pas un plat reconnu. ${analysis.reason}`);
+  }
+  return {
+    description: analysis.description,
+    ingredients: analysis.ingredients.map((ing) => ({
+      name: ing.name_fr,
+      estimatedGrams: ing.weight_g_estimate,
+      category: null,
+      confidence: ing.confidence,
+    })),
+  };
+}
+
+const VISION_SYSTEM_PROMPT = `Tu es un expert en nutrition et en analyse visuelle d'aliments. Ta mission : analyser une photo de plat et identifier précisément chaque aliment visible avec une estimation du poids cuit en grammes.
+
+## RÔLE ET PHILOSOPHIE
+
+Tu ne fournis PAS les valeurs caloriques toi-même. Tu identifies les aliments et estimes les quantités. L'application croisera tes résultats avec une base CIQUAL ANSES / USDA SR Legacy pour calculer les macros exactes.
+
+Ta valeur ajoutée est la précision de l'identification et l'honnêteté de l'estimation. Tu DOIS exprimer ton incertitude — un nombre faussement précis est pire qu'une fourchette honnête.
+
+## IDENTIFICATION
+
+- Liste UNIQUEMENT les aliments comestibles présents dans l'assiette. Ignore les éléments décoratifs.
+- Donne le nom français le plus précis possible (ex: "Steak de bœuf grillé" pas "viande").
+- Distingue méthode de cuisson : cru / vapeur / bouilli / rôti / grillé / frit / poêlé / pané.
+- Si tu vois de la matière grasse ajoutée (huile, beurre, sauce), liste-la séparément.
+
+## ESTIMATION DU POIDS (cuit, partie comestible uniquement)
+
+Ancres visuelles par priorité :
+1. Objets de référence : fourchette ~20cm, assiette principale 26-28cm, assiette entrée 19-22cm
+2. Repères : œuf ≈ 50g, tranche pain de mie ≈ 30g, amande ≈ 1.2g, olive ≈ 4g
+3. Volumétrie : 100ml riz cuit ≈ 75g, 100ml pâtes cuites ≈ 85g, 100ml salade ≈ 25g
+
+Pour chaque aliment fournis weight_g_estimate (centrale), weight_g_min et weight_g_max (±25-35%), confidence 0.0-1.0 :
+- 0.85+ : référence d'échelle claire visible
+- 0.65-0.85 : assiette standard supposée, aliment bien visible
+- 0.45-0.65 : aliment partiellement caché ou ambigu
+- < 0.45 : très incertain
+
+## FORMAT JSON STRICT
+
+Réponds UNIQUEMENT par JSON valide, sans markdown, sans backticks, sans préambule :
+
+{
+  "is_food": true,
+  "image_quality": "good",
+  "reference_scale_detected": "plate",
+  "plate_diameter_cm_estimate": 26,
+  "portion_count": 1,
+  "meal_type_guess": "lunch",
+  "ingredients": [
+    {
+      "name_fr": "Steak de bœuf grillé",
+      "name_en": "Grilled beef steak",
+      "cooking_method": "grillé",
+      "weight_g_estimate": 180,
+      "weight_g_min": 140,
+      "weight_g_max": 230,
+      "confidence": 0.7,
+      "search_keywords": ["bœuf", "entrecôte", "grillé"],
+      "notes": "Marques de grill visibles"
+    }
+  ],
+  "description": "Plat équilibré protéines + féculent + légume vert.",
+  "total_estimated_weight_g": 430,
+  "overall_confidence": 0.72
+}
+
+Si la photo n'est PAS un plat : {"is_food": false, "reason": "description courte"}`;
+
+async function callMistralVision(
   imageBase64: string,
   mimeType: string,
-): Promise<MealAnalysisResult> {
-  const apiKey = process.env.MISTRAL_API_KEY;
-  if (!apiKey) throw new Error("MISTRAL_API_KEY missing");
-
-  const systemPrompt = `Tu es un nutritionniste expert qui analyse des photos de repas.
-Tu identifies UNIQUEMENT les ingrédients visibles avec leur nom français standard (ex: "Poulet blanc", "Riz basmati", "Brocoli", "Huile d'olive").
-Tu estimes une quantité en grammes pour chaque ingrédient en te basant sur la taille apparente dans l'assiette.
-Tu retournes UNIQUEMENT un JSON strict, sans markdown, sans backticks, sans commentaire.
-Schéma:
-{
-  "description": "courte phrase descriptive du plat",
-  "ingredients": [
-    {"name": "Poulet blanc", "estimatedGrams": 150, "category": "protein", "confidence": 0.9}
-  ]
-}
-Catégories autorisées: protein, carbs, fats, vegetables, fruits, dairy, extras.
-Si tu ne reconnais pas un aliment, n'invente pas — omets-le.`;
-
-  const response = await fetch(MISTRAL_API, {
+  apiKey: string,
+): Promise<Response> {
+  return fetch(MISTRAL_API, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
@@ -88,7 +151,7 @@ Si tu ne reconnais pas un aliment, n'invente pas — omets-le.`;
       temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: VISION_SYSTEM_PROMPT },
         {
           role: "user",
           content: [
@@ -99,26 +162,46 @@ Si tu ne reconnais pas un aliment, n'invente pas — omets-le.`;
       ],
     }),
   });
+}
+
+export async function analyzeMealPhoto(
+  imageBase64: string,
+  mimeType: string,
+): Promise<MealAnalysisResult> {
+  const apiKey = process.env.MISTRAL_API_KEY;
+  if (!apiKey) throw new Error("MISTRAL_API_KEY missing");
+
+  let response = await callMistralVision(imageBase64, mimeType, apiKey);
+
+  // Retry once on 429 or 5xx with 1s backoff
+  if (response.status === 429 || response.status >= 500) {
+    await new Promise((r) => setTimeout(r, 1000));
+    response = await callMistralVision(imageBase64, mimeType, apiKey);
+  }
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Mistral vision error ${response.status}: ${text}`);
+    throw new Error(`Mistral vision error ${response.status}: ${text.slice(0, 200)}`);
   }
 
   const data = (await response.json()) as { choices?: { message?: { content?: string } }[] };
   const content = data?.choices?.[0]?.message?.content ?? "{}";
   const cleaned = content.replace(/```json|```/g, "").trim();
-  let parsed: MealAnalysisResult;
+
+  let raw: unknown;
   try {
-    parsed = JSON.parse(cleaned) as MealAnalysisResult;
+    raw = JSON.parse(cleaned);
   } catch {
     throw new Error("Réponse IA illisible (JSON invalide)");
   }
-  if (!Array.isArray(parsed.ingredients)) throw new Error("Réponse IA invalide : pas de liste d'ingrédients");
-  if (typeof parsed.description !== "string") {
-    parsed.description = "";
+
+  const result = mealPhotoAnalysisSchema.safeParse(raw);
+  if (!result.success) {
+    console.error("[mistral] meal photo parse error:", result.error.flatten());
+    throw new Error("Réponse IA non conforme au schéma attendu");
   }
-  return parsed;
+
+  return adaptToLegacy(result.data);
 }
 
 export async function generateSummary(context: Record<string, unknown>): Promise<string> {

@@ -1,0 +1,852 @@
+# PROMPT — Lift : QA complet + 4 grands chantiers d'amélioration
+
+Tu travailles sur le repo **maximdprt/app_tracking2**. C'est **Lift**, app Next.js 15 / React 19 / TypeScript strict / Tailwind v4 / Supabase / Mistral. État actuel : Lift V3 (DA beige/blanc/noir installée, 9 migrations en place, features auth/onboarding/nutrition/training/coach/habits/stats/profile toutes implémentées). Le code est globalement propre mais il y a des bugs à chasser et 4 gros chantiers à mener.
+
+## ⚠️ Règles absolues
+
+- **0 `any`** TypeScript (`grep -rn ': any' src/` doit rester vide hors `database.ts`)
+- **0 régression fonctionnelle** : tests Vitest doivent toujours passer
+- **0 valeur de style hardcodée** hors `globals.css` et `tokens.ts`
+- **À ne pas toucher** : tokens couleur dans `src/design/tokens.ts` (palette beige/blanc/noir déjà OK), calculs nutrition (`src/utils/nutrition.ts`, `src/lib/nutrition/`), schémas de migration Supabase 0001-0009 (seulement créer 0010+ pour nouvelles features)
+- **Préserver l'auth Supabase SSR** : pattern `await createClient()` + `getUser()` dans Server Components et API routes
+- **Préserver le streaming SSE** pour le coach Mistral
+
+## 🎯 Plan en 4 chantiers
+
+1. **Chantier A — Audit & QA fix de l'existant** : faire la chasse aux bugs, warnings, états vides cassés, edge cases
+2. **Chantier B — Analyse de plat IA performante** : refonte du prompt Mistral Vision, fallback robuste, UX d'édition fine, croisement CIQUAL
+3. **Chantier C — Refonte design (formes, hiérarchie, polices)** : sortir des `font-mono` géants, harmoniser, simplifier le dashboard
+4. **Chantier D — Planning hebdo des séances** : saisie en one-shot des séances de la semaine, vue "ce que tu dois faire aujourd'hui"
+
+Procède **un chantier à la fois**, attends mon GO entre chaque.
+
+---
+
+# 📋 CHANTIER A — Audit & QA fix de l'existant
+
+## A.0 Audit obligatoire (à présenter avant de coder)
+
+Exécute ces commandes et résume-moi en 15 lignes max ce qui ressort :
+
+```bash
+npm run typecheck 2>&1 | tail -30
+npm run lint 2>&1 | tail -30
+npm run test 2>&1 | tail -30
+npm run build 2>&1 | tail -30
+
+grep -rn ": any" src/ 2>/dev/null | grep -v "database.ts" | head -20
+grep -rn "console.log\|console.warn" src/ 2>/dev/null | head -20
+grep -rn "@ts-ignore\|@ts-expect-error\|@ts-nocheck" src/ 2>/dev/null
+grep -rn "TODO\|FIXME\|HACK\|XXX" src/ 2>/dev/null | head -20
+grep -rn "useEffect" src/ 2>/dev/null | wc -l
+```
+
+Puis liste les **10 problèmes les plus impactants** trouvés, triés par sévérité (crash > régression > bug visuel > dette technique).
+
+## A.1 Tests d'intégration critiques à vérifier manuellement
+
+Pour chacun, dis-moi si ça marche, si ça crashe, ou si c'est cassé silencieusement. Fais-le sur `npm run dev` localement, dans cet ordre :
+
+### Auth flow
+- [ ] `/signup` avec un email valide → tu reçois bien un email de confirmation Supabase ? (vérifier dashboard Supabase)
+- [ ] Email déjà utilisé → message d'erreur traduit en français propre ? (actuellement il affiche `error.message` brut de Supabase souvent en anglais)
+- [ ] Mot de passe < 6 caractères → message Zod affiché ?
+- [ ] `/login` mauvais mdp → message clair, pas "Invalid login credentials" anglais
+- [ ] `/login` email non confirmé → redirection vers une page d'explication ou toast clair ?
+- [ ] `/reset-password` → email reçu → flow complet OK ?
+- [ ] Logout depuis Profile → vraie destruction de session ? (essayer back navigateur après logout, ne doit PAS pouvoir retourner sur dashboard sans re-login)
+- [ ] Accès direct à `/dashboard` sans cookie → redirect propre vers `/login`
+- [ ] Refresh sur `/training/[sessionId]` → reste connecté, ne redirige pas vers login
+
+### Onboarding
+- [ ] User signé mais profil null → forcé sur `/onboarding` (vérifier `src/app/(app)/layout.tsx`)
+- [ ] Si quelqu'un complète Step 1 puis ferme l'app, est-ce que la progression est sauvegardée ? (actuellement non — c'est en state local React. À considérer)
+- [ ] Step 4 (Recap) affiche les BMR/TDEE/macros calculés cohérents ?
+- [ ] Save final → redirect `/dashboard`, profil bien persisté en DB ?
+
+### Nutrition
+- [ ] `/nutrition` sans repas → empty state propre, pas de crash du ProgressRing ni MacroBar (division par zéro)
+- [ ] Ajout d'un aliment → recherche fonctionne, calcul macros instantané au changement de grammes
+- [ ] Photo IA → upload < 8 MB OK, > 8 MB → erreur claire, fichier non-image → erreur claire
+- [ ] Date navigator passé/futur → fetch les bons repas pour la date sélectionnée
+- [ ] Supprimer un repas → ConfirmDialog → totals recalculés sans refresh complet
+
+### Training
+- [ ] `/training/start` → démarrer séance libre → arrive sur `/training/[id]` avec timer actif
+- [ ] Ajouter exercice → visible immédiatement (optimistic update)
+- [ ] Logger 3 sets → auto-save à 800ms, persisté en DB
+- [ ] Auto-progression (`AutoProgressPanel`) → propose le bon poids/reps suivant
+- [ ] Terminer séance → status passe à `completed`, redirect `/training`
+
+### Coach
+- [ ] CTA "Ouvrir mon coach" → ouvre ChatPanel
+- [ ] Envoyer message → réponse streamée token par token (SSE)
+- [ ] Erreur Mistral (clé manquante par ex) → toast clair, pas crash
+- [ ] Limite 30 msgs/jour respectée pour le tier free ?
+
+### Stats
+- [ ] 4 charts affichés
+- [ ] Compte vide → empty states cohérents (pas de crash Recharts qui n'aime pas les `[]`)
+- [ ] Filtre période 7j/30j/90j/1an fonctionne
+
+### Habits
+- [ ] Matrice spreadsheet → tap cellule → toggle 0 → 0.5 → 1 → 0 avec haptic (si mobile) et persistance Supabase
+- [ ] Score global hebdo calculé correctement avec off-days exclus
+- [ ] Streaks current/longest mis à jour
+
+### Profile
+- [ ] Sliders éditables → save → recalcul macros
+- [ ] Déconnexion fonctionne
+- [ ] Bouton "Supprimer mon compte" (RGPD) → confirmation + cascade
+
+### Transverse
+- [ ] Mobile 375px : sidebar = drawer Sheet
+- [ ] Cmd+K command palette
+- [ ] Lighthouse >= 90 sur les 6 pages principales
+- [ ] 0 warning console en navigation normale
+- [ ] 404/500 stylés cohérents avec la DA
+
+## A.2 Bugs structurels probables à investiguer en priorité
+
+Basé sur l'analyse du code actuel, voici les zones à risque :
+
+### A.2.1 `src/app/api/ai/meal-photo/route.ts` (55 lignes)
+- Le payload retourne `ingredients[index].food_item` mais le matching `matchIngredientLabelsToFoodItems` peut renvoyer un tableau de longueur différente si certains aliments ne matchent rien → utiliser une `Map` au lieu d'un index
+- `runtime = "nodejs"` et `maxDuration = 30` : suffisant pour Mistral Vision mais à monitorer
+- Pas de validation Zod du retour Mistral → si l'IA renvoie un JSON mal formé tu crashes
+
+### A.2.2 `src/services/ai/mistral.ts` (>120 lignes)
+- Le wrapper `analyzeMealPhoto` parse `JSON.parse` sans `try/catch` typé → tu lèves "Réponse IA illisible (JSON invalide)" mais sans logs détaillés
+- Pas de retry automatique si Mistral renvoie 429 ou 500
+- Pas de timeout côté `fetch` (déjà géré par `maxDuration` Next.js mais à confirmer)
+
+### A.2.3 `src/components/shared/StatCard.tsx`
+- `<span className="font-mono text-3xl font-semibold tracking-tight text-text">` → mono sur les KPI, à virer (voir chantier C)
+
+### A.2.4 `src/app/(app)/dashboard/page.tsx` (329 lignes)
+- 8+ cartes superposées (`MacroRing + 4 DailyStatCard + Séance + Aperçu IA + Streaks + Insights + Quick actions`) → page saturée
+- Ligne 212 : gradient lime résiduel `rgba(163,230,53,0.08)` à supprimer (couleur ancienne)
+- Ligne 233 : `text-orange-500` pour streak → couleur hors palette
+- Lignes 269-283 : "Quick actions" redondantes avec CTAs déjà présents en haut → supprimer
+
+### A.2.5 `src/app/(app)/nutrition/page.tsx`
+- Ligne 69 : autre gradient lime résiduel
+- Ligne 81 : `font-mono text-6xl` sur kcal → à passer en Satoshi
+- Grille 12 cols inutile pour 2 cartes
+
+### A.2.6 `src/middleware.ts`
+- Ne fait que `updateSession` — pas de redirect côté middleware → tous les `redirect()` arrivent dans les layouts, ce qui est OK mais peut créer des flash brefs. Si tu veux les éviter, déplace la logique `if (!user) redirect(login)` dans le middleware pour les routes `(app)`.
+
+### A.2.7 Performance React Query
+- Audite `staleTime` et `gcTime` dans les hooks. Si tu fais des refetch inutiles sur chaque changement de date, tu vas exploser les coûts Supabase.
+
+## A.3 Livrables Chantier A
+
+Pour chaque problème confirmé :
+1. **Reproduction** : étapes pour reproduire
+2. **Fix** : diff précise du code
+3. **Validation** : comment vérifier que c'est corrigé
+4. **Commit** : un commit Conventional Commits par catégorie de bug (`fix(auth):`, `fix(nutrition):`, `style(dashboard):`, etc.)
+
+---
+
+# 🍽️ CHANTIER B — Analyse de plat IA performante
+
+## B.1 Problèmes actuels
+
+Lecture de `src/services/ai/mistral.ts` (analyzeMealPhoto) :
+- **Prompt trop court** : `"Tu identifies UNIQUEMENT les ingrédients visibles..."` — manque les ancres d'échelle, la gestion des cas limites, les exemples de sortie
+- **Pas de confidence par défaut** : si Mistral oublie ce champ, le code crash
+- **Pas de fourchette d'incertitude** : un poids estimé est unique alors qu'il devrait être min/max + central
+- **Pas de validation Zod** : un JSON malformé crash l'API
+- **Catégories floues** : `"protein", "carbs", "fats", "vegetables", "fruits", "dairy", "extras"` — ne servent à rien fonctionnellement
+- **Pas de différenciation cuisson** : "Poulet" sans préciser cru/rôti/frit → écart caloriques x2 entre cuissons
+- **Matching CIQUAL basique** : `matchIngredientLabelsToFoodItems` cherche juste par nom, sans préférence source (CIQUAL > USDA si dispo)
+
+## B.2 Nouvelle architecture cible
+
+### B.2.1 Refonte du prompt système
+
+Remplace `systemPrompt` dans `analyzeMealPhoto` (`src/services/ai/mistral.ts`) par :
+
+```typescript
+const VISION_SYSTEM_PROMPT = `Tu es un expert en nutrition et en analyse visuelle d'aliments. Ta mission : analyser une photo de plat et identifier précisément chaque aliment visible avec une estimation du poids cuit en grammes.
+
+## RÔLE ET PHILOSOPHIE
+
+Tu ne fournis PAS les valeurs caloriques toi-même. Tu identifies les aliments et estimes les quantités. L'application croisera tes résultats avec une base CIQUAL ANSES / USDA SR Legacy pour calculer les macros exactes.
+
+Ta valeur ajoutée est la précision de l'identification et l'honnêteté de l'estimation. Tu DOIS exprimer ton incertitude — un nombre faussement précis est pire qu'une fourchette honnête.
+
+## IDENTIFICATION
+
+- Liste UNIQUEMENT les aliments comestibles présents dans l'assiette. Ignore les éléments décoratifs (branches de romarin entières, fleurs comestibles non consommées).
+- Donne le nom français le plus précis possible (ex: "Steak de bœuf grillé" pas "viande", "Patate douce rôtie au four" pas "légume orange").
+- Distingue méthode de cuisson : cru / vapeur / bouilli / rôti / grillé / frit / poêlé / pané. La méthode change les calories par 100g.
+- Si tu vois de la matière grasse ajoutée (huile, beurre, sauce), liste-la séparément.
+
+## ESTIMATION DU POIDS (cuit, partie comestible uniquement)
+
+Ancres visuelles par priorité :
+1. Objets de référence : fourchette ~20cm, assiette principale 26-28cm, assiette entrée 19-22cm, main paume ~9cm, pièce de monnaie
+2. Repères anatomiques : œuf ≈ 50g, tranche pain de mie ≈ 30g, amande ≈ 1.2g, olive ≈ 4g
+3. Volumétrie : 100ml riz cuit ≈ 75g, 100ml pâtes cuites ≈ 85g, 100ml salade ≈ 25g
+
+Pour chaque aliment fournis weight_g_estimate (centrale), weight_g_min et weight_g_max (fourchette ±25-35%), confidence 0.0-1.0 :
+- 0.85+ : référence d'échelle claire (couverts/main visibles)
+- 0.65-0.85 : assiette standard supposée, aliment bien visible
+- 0.45-0.65 : aliment partiellement caché ou ambigu
+- < 0.45 : très incertain
+
+## NE FAIS PAS
+
+- Ne fournis JAMAIS calories/protéines/glucides/lipides directement
+- Ne devine pas une marque sauf si évidente (canette visible)
+- N'invente pas d'aliments invisibles (sel, épices saupoudrés)
+- Ne mens jamais sur la confiance
+- Si la photo n'est PAS un plat, renvoie {"is_food": false, "reason": "..."}
+
+## FORMAT JSON STRICT
+
+Réponds UNIQUEMENT par JSON valide, sans markdown, sans backticks, sans préambule :
+
+{
+  "is_food": true,
+  "image_quality": "good" | "medium" | "poor",
+  "reference_scale_detected": "fork" | "knife" | "spoon" | "plate" | "hand" | "none",
+  "plate_diameter_cm_estimate": 26,
+  "portion_count": 1,
+  "meal_type_guess": "breakfast" | "lunch" | "dinner" | "snack" | "drink" | "unknown",
+  "ingredients": [
+    {
+      "name_fr": "Steak de bœuf grillé",
+      "name_en": "Grilled beef steak",
+      "cooking_method": "grillé",
+      "weight_g_estimate": 180,
+      "weight_g_min": 140,
+      "weight_g_max": 230,
+      "confidence": 0.7,
+      "search_keywords": ["bœuf", "entrecôte", "grillé"],
+      "notes": "Marques de grill visibles, cuisson à point"
+    }
+  ],
+  "description": "Plat équilibré protéines + féculent + légume vert.",
+  "total_estimated_weight_g": 430,
+  "overall_confidence": 0.72
+}
+
+Si non-plat : {"is_food": false, "reason": "..."}`;
+```
+
+### B.2.2 Schema Zod de validation
+
+Crée `src/services/ai/meal-photo-schema.ts` :
+
+```typescript
+import { z } from "zod";
+
+export const detectedIngredientSchema = z.object({
+  name_fr: z.string().min(1),
+  name_en: z.string().min(1),
+  cooking_method: z.string().default("non spécifié"),
+  weight_g_estimate: z.number().positive(),
+  weight_g_min: z.number().positive(),
+  weight_g_max: z.number().positive(),
+  confidence: z.number().min(0).max(1),
+  search_keywords: z.array(z.string()).min(1).max(6),
+  notes: z.string().nullable().default(""),
+});
+
+export const mealPhotoAnalysisSchema = z.discriminatedUnion("is_food", [
+  z.object({
+    is_food: z.literal(false),
+    reason: z.string(),
+  }),
+  z.object({
+    is_food: z.literal(true),
+    image_quality: z.enum(["good", "medium", "poor"]).default("medium"),
+    reference_scale_detected: z.string().default("none"),
+    plate_diameter_cm_estimate: z.number().positive().nullable().default(null),
+    portion_count: z.number().int().positive().default(1),
+    meal_type_guess: z.enum(["breakfast", "lunch", "dinner", "snack", "drink", "unknown"]).default("unknown"),
+    ingredients: z.array(detectedIngredientSchema).min(1),
+    description: z.string().default(""),
+    total_estimated_weight_g: z.number().positive(),
+    overall_confidence: z.number().min(0).max(1),
+  }),
+]);
+
+export type MealPhotoAnalysis = z.infer<typeof mealPhotoAnalysisSchema>;
+```
+
+### B.2.3 Wrapper Mistral mis à jour avec retry + timeout
+
+**Modèle** : conserve `pixtral-large-latest` (qualité max, ~2-6 $/1M tokens). En fallback automatique si > 3 erreurs/jour, bascule sur `pixtral-12b-2409` (10x moins cher mais ~15% moins précis). Stocke un compteur d'erreurs/utilisateur dans `api_usage` table (déjà présente migration 0009).
+
+Refacto `analyzeMealPhoto` dans `src/services/ai/mistral.ts` :
+- Parse strict via `mealPhotoAnalysisSchema.safeParse(...)`. Si échec : log détaillé + erreur explicite "Réponse IA non conforme"
+- Retry automatique 1 fois en cas de 429 ou 5xx, avec backoff 1s
+- Si `is_food: false`, propage tel quel jusqu'au front
+- Garde la rétrocompat avec l'ancien type `MealAnalysisResult` via une fonction d'adaptation (l'ancien type a `ingredients[].name` et `estimatedGrams`)
+
+### B.2.4 Matching CIQUAL amélioré
+
+Refacto `matchIngredientLabelsToFoodItems` dans `src/services/supabase/queries/foods.ts` :
+- Utiliser maintenant `ingredient.search_keywords` (tableau) au lieu du `name` brut
+- Appeler une RPC dédiée si elle existe, sinon faire un `OR` sur chaque keyword via Supabase
+- Prioriser `source = 'CIQUAL_2020_ANSES'` puis `'FITNESS_CUSTOM_GENERIC'` puis le reste
+- Renvoyer top 5 matches au lieu de 1 → l'utilisateur peut choisir alternatives dans le front
+
+Crée la migration `supabase/migrations/0010_meal_photo_search.sql` :
+
+```sql
+CREATE OR REPLACE FUNCTION public.match_food_items_by_keywords(
+  keywords text[],
+  limit_n int DEFAULT 5
+)
+RETURNS TABLE (
+  id text,
+  nom text,
+  calories_100g numeric,
+  proteines_100g numeric,
+  glucides_100g numeric,
+  lipides_100g numeric,
+  sucres_100g numeric,
+  fibres_100g numeric,
+  sel_100g numeric,
+  source text,
+  rank real
+) AS $$
+  SELECT id, nom, calories_100g, proteines_100g, glucides_100g, lipides_100g,
+         sucres_100g, fibres_100g, sel_100g, source,
+         ts_rank(
+           to_tsvector('french', nom),
+           plainto_tsquery('french', array_to_string(keywords, ' '))
+         ) AS rank
+  FROM public.food_items
+  WHERE to_tsvector('french', nom) @@ plainto_tsquery('french', array_to_string(keywords, ' '))
+  ORDER BY rank DESC,
+           CASE source
+             WHEN 'CIQUAL_2020_ANSES' THEN 1
+             WHEN 'FITNESS_CUSTOM_GENERIC' THEN 2
+             ELSE 3
+           END,
+           length(nom)
+  LIMIT limit_n;
+$$ LANGUAGE sql STABLE;
+
+GRANT EXECUTE ON FUNCTION public.match_food_items_by_keywords TO authenticated;
+```
+
+### B.2.5 UX d'édition fine dans `PhotoAnalyzer.tsx`
+
+Refonte de la phase `review` du composant :
+- Pour chaque ingrédient détecté, afficher :
+  - Nom français + méthode de cuisson + notes
+  - Slider de poids entre `weight_g_min` et `weight_g_max`, valeur centrale par défaut
+  - Indicateur de confiance : icône vert (>0.75) / orange (0.5-0.75) / rouge (<0.5)
+  - Bouton "Ce n'est pas X, c'est Y" → ouvre dropdown avec les 4 alternatives renvoyées par la RPC
+  - Bouton "j'ai pesé ça" → input direct, confidence forcée à 1.0
+- Total kcal/macros calculés en temps réel selon les choix
+- Bouton "Recommencer l'analyse" si l'utilisateur n'est pas satisfait
+- Bouton "Valider et ajouter au repas" qui crée le meal + ingredients en DB
+
+### B.2.6 Cas non-plat
+
+Si la réponse est `{ is_food: false }` :
+- Affiche un message clair `"Cette photo n'est pas un plat reconnu. {reason}"`
+- Bouton "Recommencer" + "Saisir manuellement"
+- Tracker l'événement `meal_photo_not_food` en analytics PostHog (si présent)
+
+## B.3 Tests Vitest à ajouter
+
+Crée `src/services/ai/__tests__/meal-photo.test.ts` :
+- Test parse JSON valide → OK
+- Test parse JSON invalide → erreur explicite
+- Test cas `is_food: false` → bien typé
+- Test retry sur 429 → re-tente une fois puis échoue
+- Test fonction d'adaptation vers ancien type → rétrocompat
+
+## B.4 Livrables Chantier B
+
+7 commits :
+1. `feat(api): zod schema for meal photo analysis`
+2. `feat(ai): refined Mistral vision prompt with confidence ranges`
+3. `feat(ai): retry + timeout + safeParse in analyzeMealPhoto`
+4. `feat(db): match_food_items_by_keywords RPC migration 0010`
+5. `feat(api): improved CIQUAL matching with multi-keywords`
+6. `feat(nutrition): PhotoAnalyzer review UX with sliders + alternatives + confidence`
+7. `test(ai): meal photo analysis test suite`
+
+---
+
+# 🎨 CHANTIER C — Refonte design (formes, hiérarchie, polices)
+
+## C.1 Problèmes confirmés à corriger
+
+### C.1.1 Typographie incohérente
+- Mélange `md-display-small`, `md-headline-small`, `md-title-large`, `md-title-medium`, `md-body-large`, `md-body-medium`, `md-label-large`, `md-label-medium`, `lift-display-small`, `lift-hero-score` dans `globals.css` lignes 133-203 → trop de classes
+- KPI en `font-mono text-3xl` (StatCard) et `font-mono text-6xl` (Nutrition) → effet "tableur Excel"
+- Display font = Instrument Serif → à remplacer par Satoshi (sans-serif moderne sportif)
+
+### C.1.2 Couleurs résiduelles hors palette
+- `text-orange-500` dans `src/app/(app)/dashboard/page.tsx` ligne 233 (streak flame)
+- Gradients lime `rgba(163,230,53,0.08)` dans `src/app/(app)/dashboard/page.tsx` ligne 212 et `src/app/(app)/nutrition/page.tsx` ligne 69
+
+### C.1.3 Saturation visuelle
+- Dashboard : 8+ sections superposées
+- "Quick actions" en bas (dashboard lignes 269-283) redondantes avec CTAs en haut
+- "AI summary card" (dashboard lignes 211-223) redondante avec section Insights
+
+### C.1.4 Formes massives
+- Buttons `rounded-full` partout → look "pill"
+- Sidebar liens `rounded-full` aussi
+
+## C.2 Actions
+
+### C.2.1 Police Satoshi via Fontshare
+
+`src/app/layout.tsx` :
+- Retirer `Instrument_Serif` de l'import next/font
+- Ajouter `<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" />` dans le `<head>`
+- Garder Inter et JetBrains Mono via next/font
+- ⚠️ **Licence Satoshi** : gratuit usage personnel/dev, licence Indian Type Foundry requise pour usage commercial (~50-100€). À documenter dans `docs/decisions.md` (ADR-009).
+
+`src/app/globals.css` ligne 51 :
+- `--font-display: "Satoshi", system-ui, sans-serif;` (remplace l'ancien)
+
+### C.2.2 Système typo unifié
+
+Dans `src/app/globals.css`, **ajouter** (ne pas supprimer les anciennes classes, juste ajouter, on les retirera après migration complète) :
+
+```css
+.lift-display-xl {
+  font-family: "Satoshi", system-ui, sans-serif;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.lift-display-lg {
+  font-family: "Satoshi", system-ui, sans-serif;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.lift-display-md {
+  font-family: "Satoshi", system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.lift-title {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.4;
+}
+
+.lift-body { font-family: var(--font-sans); font-size: 0.9375rem; line-height: 1.55; }
+.lift-body-soft { font-family: var(--font-sans); font-size: 0.9375rem; line-height: 1.55; color: var(--color-text-soft); }
+
+.lift-label {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--color-muted);
+}
+
+.lift-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+```
+
+### C.2.3 StatCard refactor
+
+`src/components/shared/StatCard.tsx` :
+- Retirer `font-mono text-3xl font-semibold` → utiliser `lift-display-lg`
+- Retirer wrapping `<Card>` automatique → composant inline, on wrappe explicitement si besoin
+- Label en `lift-label` (déjà OK avec `uppercase tracking-wider`)
+
+### C.2.4 Refonte Dashboard
+
+Dans `src/app/(app)/dashboard/page.tsx` :
+- **Supprimer** section "Quick actions" (lignes 269-283) → redondant
+- **Supprimer** section "AI summary card" (lignes 211-223) → redondant avec Insights
+- **Supprimer** gradient lime ligne 212
+- **Remplacer** streak pills avec `text-orange-500` (lignes 230-249) par une intégration dans la grille "Cette semaine"
+- **Restructurer** en 4 sections claires séparées par `space-y-10` :
+  1. Header (date + greeting)
+  2. Hero "Aujourd'hui" (MacroRing + remaining kcal + macro bars)
+  3. "Cette semaine" (grille 4 stats : Streak food, Streak workout, Poids, Sommeil)
+  4. "Prochaine action" (séance du jour)
+  5. "Insights" (1 seule insight prioritaire, lien "Voir tout")
+
+### C.2.5 Refonte Nutrition
+
+Dans `src/app/(app)/nutrition/page.tsx` :
+- **Supprimer** gradient lime ligne 69
+- **Remplacer** `font-mono text-6xl` ligne 81 par `lift-display-xl`
+- **Supprimer** ProgressRing à droite, garder uniquement valeur numérique en gros + macro bars en dessous
+- **Restructurer** : hero "Restant aujourd'hui" + liste repas + bouton ajouter en bas
+
+### C.2.6 Buttons
+
+`src/components/ui/Button.tsx` ligne 9 :
+- Remplacer `rounded-full` par `rounded-xl` (variant standard)
+- Garder `rounded-full` uniquement pour `size: "icon"`
+
+### C.2.7 Sidebar
+
+`src/components/layout/Sidebar.tsx` lignes 64, 94 :
+- Remplacer `rounded-full` par `rounded-lg`
+
+`src/components/layout/SidebarMobile.tsx` ligne 57 :
+- Idem
+
+### C.2.8 PageHeader simplifié
+
+`src/components/shared/PageHeader.tsx` :
+```tsx
+export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
+  return (
+    <header className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p className="lift-label">LIFT</p>
+        <h1 className="lift-display-lg mt-2">{title}</h1>
+        {subtitle ? <p className="lift-body-soft mt-1">{subtitle}</p> : null}
+      </div>
+      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+    </header>
+  );
+}
+```
+
+## C.3 Livrables Chantier C
+
+7 commits :
+1. `feat(design): replace Instrument Serif by Satoshi font`
+2. `feat(design): unified lift-* typography classes (5 levels)`
+3. `refactor(components): StatCard with Satoshi numerics, no mono`
+4. `style(buttons): softer shapes rounded-xl for standard buttons`
+5. `style(sidebar): softer pill shapes for nav links`
+6. `refactor(dashboard): remove redundant sections, clear 4-level hierarchy`
+7. `refactor(nutrition): kcal-remaining hero, no mono, clean structure`
+
+---
+
+# 📅 CHANTIER D — Planning hebdo des séances en one-shot
+
+## D.1 Contexte
+
+Tu as déjà la table `workout_days(program_id, day_of_week, workout_name, ...)` dans tes types DB générés. Mais l'UX actuelle force l'utilisateur à créer une séance à la fois sur `/training/start`. L'objectif : permettre la **saisie en bulk de la semaine** + afficher "ce que tu dois faire aujourd'hui" sur le Dashboard et `/training`.
+
+## D.2 Migration nouvelle table
+
+Crée `supabase/migrations/0011_weekly_schedule.sql` :
+
+```sql
+-- ─── Planning hebdo personnalisé (indépendant des programmes structurés) ────
+-- Permet à l'utilisateur de planifier ses séances de la semaine en one-shot
+-- sans devoir créer un programme formel.
+
+CREATE TABLE IF NOT EXISTS public.scheduled_workouts (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  scheduled_date date NOT NULL,
+  workout_name text NOT NULL,
+  muscle_groups text[] DEFAULT '{}'::text[],
+  notes        text,
+  status       text NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'completed', 'skipped')),
+  session_id   uuid REFERENCES public.workout_sessions(id) ON DELETE SET NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_scheduled_workouts_user_date
+  ON public.scheduled_workouts(user_id, scheduled_date);
+
+ALTER TABLE public.scheduled_workouts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "scheduled_workouts_self" ON public.scheduled_workouts;
+CREATE POLICY "scheduled_workouts_self"
+  ON public.scheduled_workouts FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Trigger updated_at
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS scheduled_workouts_updated_at ON public.scheduled_workouts;
+CREATE TRIGGER scheduled_workouts_updated_at
+  BEFORE UPDATE ON public.scheduled_workouts
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_updated_at();
+```
+
+Puis régénérer les types : `npx supabase gen types typescript --project-id <id> > src/types/database.ts`.
+
+## D.3 Page `/training/schedule` (nouveau)
+
+Nouvel écran `src/app/(app)/training/schedule/page.tsx` :
+
+```
+┌────────────────────────────────────────┐
+│  ENTRAÎNEMENT                          │
+│  Planning de ma semaine                │
+├────────────────────────────────────────┤
+│                                        │
+│  Semaine du 12 au 18 mai 2026          │
+│  [← Semaine précédente]  [Suivante →]  │
+│                                        │
+│  Templates rapides :                   │
+│  [PPL 3x/sem]  [Upper/Lower 4x/sem]    │
+│  [Full Body 3x/sem]  [Custom]          │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │ LUNDI 12                          │  │
+│  │ ┌──────────────────────────────┐ │  │
+│  │ │ Push day                      │ │  │
+│  │ │ pectoraux • épaules • triceps │ │  │
+│  │ │ [Modifier] [Supprimer]        │ │  │
+│  │ └──────────────────────────────┘ │  │
+│  │ + Ajouter une séance              │  │
+│  ├──────────────────────────────────┤  │
+│  │ MARDI 13                          │  │
+│  │ + Ajouter une séance              │  │
+│  ├──────────────────────────────────┤  │
+│  │ MERCREDI 14                       │  │
+│  │ ┌──────────────────────────────┐ │  │
+│  │ │ Pull day                      │ │  │
+│  │ │ dos • biceps                  │ │  │
+│  │ └──────────────────────────────┘ │  │
+│  ...                                   │
+│  └──────────────────────────────────┘  │
+│                                        │
+│  [Enregistrer le planning de la sem.]  │
+└────────────────────────────────────────┘
+```
+
+### Logique
+
+- Le state local maintient un tableau `ScheduledWorkout[]` indexé par date
+- L'utilisateur peut ajouter/modifier/supprimer librement
+- Le bouton "Enregistrer" fait un UPSERT en bulk dans Supabase (soit `delete + insert` soit `upsert` avec une key composite (user_id, scheduled_date, workout_name))
+- Templates rapides = des fonctions qui pré-remplissent 7 jours d'un coup, par exemple :
+
+```typescript
+const WORKOUT_TEMPLATES = {
+  ppl_3x: {
+    name: "Push / Pull / Legs (3x/sem)",
+    days: [
+      { day_of_week: 1, workout_name: "Push day", muscle_groups: ["chest", "shoulders_front", "triceps"] },
+      { day_of_week: 3, workout_name: "Pull day", muscle_groups: ["back", "biceps"] },
+      { day_of_week: 5, workout_name: "Legs day", muscle_groups: ["quads", "hamstrings", "glutes", "calves"] },
+    ],
+  },
+  upper_lower_4x: { ... },
+  full_body_3x: { ... },
+};
+```
+
+- Modal "Custom workout" pour saisir un nom + muscles + notes manuellement
+- Validation Zod sur les inputs
+
+## D.4 Queries Supabase
+
+Crée `src/services/supabase/queries/schedule.ts` :
+
+```typescript
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
+
+type Client = SupabaseClient<Database>;
+type ScheduledWorkout = Database["public"]["Tables"]["scheduled_workouts"]["Row"];
+type ScheduledWorkoutInsert = Database["public"]["Tables"]["scheduled_workouts"]["Insert"];
+
+export async function getScheduledWorkoutsForWeek(
+  client: Client,
+  userId: string,
+  weekStart: string, // YYYY-MM-DD (lundi)
+): Promise<ScheduledWorkout[]> {
+  // Compute weekEnd = weekStart + 6 days
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekEndISO = weekEnd.toISOString().slice(0, 10);
+
+  const { data, error } = await client
+    .from("scheduled_workouts")
+    .select("*")
+    .eq("user_id", userId)
+    .gte("scheduled_date", weekStart)
+    .lte("scheduled_date", weekEndISO)
+    .order("scheduled_date", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getScheduledWorkoutForDate(
+  client: Client,
+  userId: string,
+  date: string,
+): Promise<ScheduledWorkout | null> {
+  const { data, error } = await client
+    .from("scheduled_workouts")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("scheduled_date", date)
+    .eq("status", "planned")
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function upsertWeekSchedule(
+  client: Client,
+  userId: string,
+  weekStart: string,
+  workouts: Omit<ScheduledWorkoutInsert, "user_id">[],
+): Promise<void> {
+  // Delete existing scheduled (not completed) for the week
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekEndISO = weekEnd.toISOString().slice(0, 10);
+
+  const { error: deleteError } = await client
+    .from("scheduled_workouts")
+    .delete()
+    .eq("user_id", userId)
+    .eq("status", "planned")
+    .gte("scheduled_date", weekStart)
+    .lte("scheduled_date", weekEndISO);
+  if (deleteError) throw deleteError;
+
+  if (workouts.length === 0) return;
+
+  const { error: insertError } = await client
+    .from("scheduled_workouts")
+    .insert(workouts.map((w) => ({ ...w, user_id: userId })));
+  if (insertError) throw insertError;
+}
+
+export async function markScheduledAsCompleted(
+  client: Client,
+  scheduledId: string,
+  sessionId: string,
+): Promise<void> {
+  const { error } = await client
+    .from("scheduled_workouts")
+    .update({ status: "completed", session_id: sessionId })
+    .eq("id", scheduledId);
+  if (error) throw error;
+}
+```
+
+## D.5 Hook `useTodayWorkout`
+
+Crée `src/hooks/useTodayWorkout.ts` :
+
+```typescript
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/services/supabase/client";
+import { useUser } from "@/hooks/useUser";
+import { getScheduledWorkoutForDate } from "@/services/supabase/queries/schedule";
+import { todayISO } from "@/utils/dates";
+
+export function useTodayWorkout() {
+  const { data: user } = useUser();
+  return useQuery({
+    queryKey: ["today-workout", user?.id ?? null],
+    enabled: Boolean(user?.id),
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const supabase = createClient();
+      return getScheduledWorkoutForDate(supabase, user.id, todayISO());
+    },
+  });
+}
+```
+
+## D.6 Intégration Dashboard
+
+Dans `src/app/(app)/dashboard/page.tsx`, section "Prochaine action" :
+- Si `useTodayWorkout` renvoie un workout planifié non complété → afficher "Aujourd'hui : Push day · pectoraux • épaules • triceps" + bouton "Démarrer ma séance" qui pré-remplit le nom dans `/training/start`
+- Si pas de planning → "Aucune séance programmée aujourd'hui" + bouton "Voir mon planning" → `/training/schedule`
+- Si workout complété → "Séance complétée ✓ · {nom du completed_session}"
+
+## D.7 Intégration Training
+
+Dans `src/app/(app)/training/page.tsx`, ajouter en haut :
+- Bouton "Planifier ma semaine" → `/training/schedule`
+- Card "Cette semaine" affichant les 7 jours avec leur statut (planned / completed / skipped / empty)
+
+## D.8 Hook utilitaire pour le début de semaine
+
+`src/utils/dates.ts` — ajouter :
+
+```typescript
+export function getWeekStart(date: Date | string = new Date()): string {
+  const d = typeof date === "string" ? new Date(date) : new Date(date);
+  const dayOfWeek = d.getDay(); // 0 = dimanche, 1 = lundi
+  const offset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
+export function formatWeekRange(weekStart: string): string {
+  const start = new Date(weekStart);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  return `Semaine du ${start.getDate()} au ${end.getDate()} ${end.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}`;
+}
+```
+
+## D.9 Tests Vitest
+
+Crée `src/services/supabase/queries/__tests__/schedule.test.ts` avec mocks :
+- Test `upsertWeekSchedule` supprime les anciennes planifiées avant d'insérer
+- Test ne touche pas aux séances `completed`
+- Test idempotent (relancer 2x donne le même résultat)
+
+## D.10 Livrables Chantier D
+
+6 commits :
+1. `feat(db): scheduled_workouts table migration 0011`
+2. `feat(types): regenerate Supabase types with new table`
+3. `feat(queries): schedule queries (getWeek, upsertWeek, markCompleted)`
+4. `feat(training): /training/schedule page with bulk weekly input`
+5. `feat(training): WORKOUT_TEMPLATES (PPL, Upper/Lower, Full Body)`
+6. `feat(dashboard): today's workout card with start CTA`
+
+---
+
+# 🚦 PROCESSUS GLOBAL
+
+Pour chaque chantier :
+1. Confirme ta compréhension
+2. Liste les fichiers exacts à modifier (avec numéros de lignes quand pertinent)
+3. Présente la diff avant de coder si > 50 lignes modifiées
+4. Code
+5. Vérifie `npm run typecheck && npm run lint && npm run test && npm run build` passent à chaque commit
+6. Commit message Conventional Commits
+
+**Entre chaque chantier, j'interviens pour valider**. Si tu trouves des problèmes que je n'ai pas anticipés, signale-les avec leur sévérité — je décide si on les traite tout de suite ou plus tard.
+
+**Commence par le Chantier A — l'audit complet.** Présente-moi les 10 problèmes les plus impactants détectés et attends mon GO avant de coder le premier fix.

@@ -37,8 +37,8 @@ export default function LoginPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Bon retour</h2>
-        <p className="mt-1 text-sm text-text-soft">Connecte-toi pour continuer.</p>
+        <h2 className="lift-display-md">Bon retour</h2>
+        <p className="lift-body-soft mt-1">Connecte-toi pour continuer.</p>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4">

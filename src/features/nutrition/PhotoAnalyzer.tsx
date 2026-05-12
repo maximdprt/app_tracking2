@@ -291,10 +291,10 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
       {totals.calories > 0 ? (
         <Card>
           <div className="flex items-baseline justify-between">
-            <span className="text-xs text-text-soft">Total estimé</span>
-            <span className="font-mono text-2xl font-semibold">{Math.round(totals.calories)} kcal</span>
+            <span className="lift-label">Total estimé</span>
+            <span className="lift-display-md lift-num">{Math.round(totals.calories)} kcal</span>
           </div>
-          <p className="mt-1 text-[10px] text-muted">
+          <p className="mt-1 lift-label">
             P {Math.round(totals.protein)}g · G {Math.round(totals.carbs)}g · L {Math.round(totals.fats)}g
           </p>
           <MacroBar protein={totals.protein} carbs={totals.carbs} fats={totals.fats} />

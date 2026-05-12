@@ -35,8 +35,8 @@ export default function ResetPasswordPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Mot de passe oublié</h2>
-        <p className="mt-1 text-sm text-text-soft">
+        <h2 className="lift-display-md">Mot de passe oublié</h2>
+        <p className="lift-body-soft mt-1">
           On t'envoie un lien pour le réinitialiser.
         </p>
       </div>

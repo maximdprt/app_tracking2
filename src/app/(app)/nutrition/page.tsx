@@ -7,14 +7,13 @@ import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
+import { MacroProgressBar } from "@/components/shared/MacroProgressBar";
+import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { ProgressRing } from "@/components/shared/ProgressRing";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { DateNavigator } from "@/components/shared/DateNavigator";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { AnimatedNumber } from "@/components/shared/AnimatedNumber";
 import { Dialog } from "@/components/ui/Dialog";
 import { MEAL_TYPES } from "@/constants/meal-types";
 import { ROUTES } from "@/constants/routes";
@@ -35,11 +34,8 @@ export default function NutritionPage() {
     return (
       <div className="space-y-10">
         <PageHeader title="Nutrition" actions={<DateNavigator />} />
-        <div className="grid gap-4 lg:grid-cols-12">
-          <Skeleton className="h-56 lg:col-span-7" />
-          <Skeleton className="h-56 lg:col-span-5" />
-        </div>
-        <Skeleton className="h-64" />
+        <Skeleton className="h-52 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     );
   }
@@ -50,13 +46,12 @@ export default function NutritionPage() {
     <div className="space-y-10">
       <PageHeader
         title="Nutrition"
-        subtitle="Ton journal alimentaire quotidien"
         actions={
           <>
             <DateNavigator />
             <Link href={ROUTES.nutritionAdd}>
               <Button>
-                <Plus className="h-4 w-4 stroke-[1.5]" />
+                <Plus className="h-4 w-4" />
                 Ajouter
               </Button>
             </Link>
@@ -64,122 +59,91 @@ export default function NutritionPage() {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-12">
-        {/* Hero kcal card */}
-        <Card className="lg:col-span-7 bg-[radial-gradient(circle_at_20%_20%,color-mix(in_srgb,var(--lift-text-primary)_6%,transparent)_0%,transparent_60%)]">
-          <CardHeader>
-            <div>
-              <CardTitle>Calories du jour</CardTitle>
-              <p className="lift-body-sm text-text-soft">
-                Reste <span className="lift-num text-text">{Math.round(remaining)}</span> kcal / objectif{" "}
-                <span className="lift-num">{targets.calories}</span>
-              </p>
-            </div>
-          </CardHeader>
-          <div className="flex items-center justify-between gap-6">
-            <div>
-              <p className="lift-display-lg text-text tracking-tight">
-                <AnimatedNumber value={Math.round(totals.calories)} />
-              </p>
-              <p className="lift-body-sm text-text-soft">kcal consommées</p>
-            </div>
-            <ProgressRing
-              value={totals.calories}
-              max={targets.calories}
-              size={140}
-              stroke={12}
+      {/* ── Niveau 1 : KPI restant ── */}
+      <section>
+        <p className="lift-label mb-4">Restant aujourd'hui</p>
+        <Card className="p-6 sm:p-8">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+            <span className="lift-display-xl">{Math.round(remaining)}</span>
+            <span className="lift-body-soft">kcal</span>
+          </div>
+          <p className="lift-body-soft mt-0.5">
+            {Math.round(totals.calories)} consommées · objectif {targets.calories}
+          </p>
+
+          <div className="mt-6 space-y-4">
+            <MacroProgressBar
+              label="Protéines"
+              value={totals.protein}
+              max={targets.protein}
+              color="var(--color-protein)"
+            />
+            <MacroProgressBar
+              label="Glucides"
+              value={totals.carbs}
+              max={targets.carbs}
+              color="var(--color-carbs)"
+            />
+            <MacroProgressBar
+              label="Lipides"
+              value={totals.fats}
+              max={targets.fats}
+              color="var(--color-fats)"
             />
           </div>
         </Card>
+      </section>
 
-        <MacroCard
-          label="Protéines"
-          value={totals.protein}
-          max={targets.protein}
-          color="var(--color-protein)"
-          className="lg:col-span-5"
-        />
-        <MacroCard
-          label="Glucides"
-          value={totals.carbs}
-          max={targets.carbs}
-          color="var(--color-carbs)"
-          className="lg:col-span-4"
-        />
-        <MacroCard
-          label="Lipides"
-          value={totals.fats}
-          max={targets.fats}
-          color="var(--color-fats)"
-          className="lg:col-span-4"
-        />
-        <Link href={ROUTES.nutritionHistory} className="lg:col-span-4">
-          <Card className="flex h-full cursor-pointer items-center justify-center text-text-soft transition-colors hover:border-border-strong hover:text-text">
-            <p className="lift-body-sm">Voir l'historique →</p>
-          </Card>
-        </Link>
-      </div>
+      {/* ── Niveau 3 : Repas du jour ── */}
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <p className="lift-label">Repas du jour</p>
+          <Link href={ROUTES.nutritionHistory} className="lift-body-soft text-muted hover:text-text transition-colors">
+            Historique →
+          </Link>
+        </div>
 
-      {/* Meals by type */}
-      {meals.length === 0 ? (
-        <EmptyState
-          icon={Salad}
-          title="Aucun repas pour cette date"
-          description="Ajoute ton premier repas pour démarrer le suivi."
-          action={
-            <Link href={ROUTES.nutritionAdd}>
-              <Button>
-                <Plus className="h-4 w-4 stroke-[1.5]" />
+        {meals.length === 0 ? (
+          <EmptyState
+            icon={Salad}
+            title="Aucun repas pour cette date"
+            description="Ajoute ton premier repas pour démarrer le suivi."
+            action={
+              <Link href={ROUTES.nutritionAdd}>
+                <Button>
+                  <Plus className="h-4 w-4" />
+                  Ajouter un repas
+                </Button>
+              </Link>
+            }
+          />
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {MEAL_TYPES.map((mt) => (
+              <MealColumn
+                key={mt.id}
+                type={mt.id}
+                label={mt.label}
+                icon={mt.icon}
+                meals={meals.filter((m) => m.meal_type === mt.id)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* CTA bas de page, pratique sur mobile */}
+        {meals.length > 0 ? (
+          <div className="mt-4">
+            <Link href={ROUTES.nutritionAdd} className="block">
+              <Button variant="outline" className="w-full">
+                <Plus className="h-4 w-4" />
                 Ajouter un repas
               </Button>
             </Link>
-          }
-        />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {MEAL_TYPES.map((mt) => (
-            <MealColumn
-              key={mt.id}
-              type={mt.id}
-              label={mt.label}
-              icon={mt.icon}
-              meals={meals.filter((m) => m.meal_type === mt.id)}
-            />
-          ))}
-        </div>
-      )}
+          </div>
+        ) : null}
+      </section>
     </div>
-  );
-}
-
-function MacroCard({
-  label,
-  value,
-  max,
-  color,
-  className,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  color: string;
-  className?: string;
-}) {
-  return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>{label}</CardTitle>
-      </CardHeader>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="lift-display-md text-text tracking-tight">
-            <AnimatedNumber value={Math.round(value)} />
-            <span className="lift-body-sm text-text-soft"> / {Math.round(max)}g</span>
-          </p>
-        </div>
-        <ProgressRing value={value} max={max || 1} color={color} size={64} stroke={6} showLabel={false} />
-      </div>
-    </Card>
   );
 }
 
@@ -197,20 +161,20 @@ function MealColumn({
   const total = meals.reduce((acc, m) => acc + m.total_calories, 0);
 
   return (
-    <Card>
+    <Card className="p-5">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span>{icon}</span>
-          <span className="lift-body-md font-medium">{label}</span>
+          <span className="lift-title">{label}</span>
         </div>
-        <span className="lift-body-sm lift-num text-text-soft">{Math.round(total)} kcal</span>
+        <span className="lift-body-soft lift-num">{Math.round(total)} kcal</span>
       </div>
       {meals.length === 0 ? (
         <Link
           href={`${ROUTES.nutritionAdd}?type=${type}`}
-          className="flex items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-surface/50 py-6 lift-body-sm text-muted hover:border-border-strong hover:text-text-soft"
+          className="flex items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-surface/50 py-6 lift-body-soft hover:border-border-strong hover:text-text transition-colors"
         >
-          <Plus className="h-3.5 w-3.5 stroke-[1.5]" />
+          <Plus className="h-3.5 w-3.5" />
           Ajouter
         </Link>
       ) : (
@@ -253,7 +217,6 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
 
   return (
     <div className="rounded-xl border border-border bg-surface-2 p-3">
-      {/* Miniature et ligne récap sont des boutons distincts (pas de <button> imbriqué) */}
       <div className="flex w-full items-center gap-2">
         {meal.photo_url ? (
           <button
@@ -263,14 +226,10 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
             className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {photoUrlQuery.data ? (
-              <img
-                src={photoUrlQuery.data}
-                alt="Photo repas"
-                className="h-full w-full object-cover"
-              />
+              <img src={photoUrlQuery.data} alt="Photo repas" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full items-center justify-center">
-                <ImageIcon className="h-4 w-4 stroke-[1.5] text-muted" />
+                <ImageIcon className="h-4 w-4 text-muted" />
               </div>
             )}
           </button>
@@ -283,14 +242,14 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
           className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg -m-1 p-1"
         >
           <div className="min-w-0 flex-1">
-            <p className="lift-display-sm text-text">{Math.round(meal.total_calories)} kcal</p>
-            <p className="lift-body-sm text-muted">
+            <p className="lift-display-sm">{Math.round(meal.total_calories)} kcal</p>
+            <p className="lift-body-soft">
               P {Math.round(meal.total_protein)} · G {Math.round(meal.total_carbs)} · L{" "}
               {Math.round(meal.total_fats)}
             </p>
           </div>
           <ChevronDown
-            className={`h-3.5 w-3.5 shrink-0 stroke-[1.5] text-muted transition-transform ${open ? "rotate-180" : ""}`}
+            className={`h-3.5 w-3.5 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
           />
         </button>
       </div>
@@ -307,7 +266,7 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
               <span className="text-text-soft">
                 {ing.custom_food_name ?? "Aliment"} · {Math.round(ing.grams)}g
               </span>
-              <span className="lift-body-sm lift-num text-muted">{Math.round(ing.calories)} kcal</span>
+              <span className="lift-num text-muted">{Math.round(ing.calories)} kcal</span>
             </div>
           ))}
           <div className="pt-2">
@@ -317,8 +276,8 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
               confirmLabel="Supprimer"
               onConfirm={() => deleteMutation.mutateAsync()}
               trigger={
-                <button className="inline-flex items-center gap-1 text-xs text-danger hover:underline">
-                  <Trash2 className="h-3.5 w-3.5 stroke-[1.5]" />
+                <button className="inline-flex items-center gap-1 lift-body-sm text-danger hover:underline">
+                  <Trash2 className="h-3.5 w-3.5" />
                   Supprimer
                 </button>
               }
@@ -327,14 +286,9 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
         </motion.div>
       ) : null}
 
-      {/* Photo fullscreen dialog */}
       {meal.photo_url && photoUrlQuery.data ? (
         <Dialog open={photoOpen} onOpenChange={setPhotoOpen} title="Photo du repas">
-          <img
-            src={photoUrlQuery.data}
-            alt="Photo du repas"
-            className="w-full rounded-xl object-contain"
-          />
+          <img src={photoUrlQuery.data} alt="Photo du repas" className="w-full rounded-xl object-contain" />
         </Dialog>
       ) : null}
     </div>

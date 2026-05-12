@@ -30,14 +30,15 @@ export async function POST(request: Request) {
 
     const ai = await analyzeMealPhoto(base64, file.type);
 
-    const matches = await matchIngredientLabelsToFoodItems(
-      supabase,
-      ai.ingredients.map((i) => i.name),
-    );
+    // Filter out ingredients without a name before CIQUAL matching
+    const validIngredients = ai.ingredients.filter((i) => i.name && i.name.trim().length > 0);
+    const labels = validIngredients.map((i) => i.name);
+
+    const matches = await matchIngredientLabelsToFoodItems(supabase, labels);
 
     const payload: MealPhotoAnalysisApiResponse = {
       description: ai.description,
-      ingredients: ai.ingredients.map((ing, index) => ({
+      ingredients: validIngredients.map((ing, index) => ({
         ...ing,
         food_item: matches[index] ?? null,
       })),

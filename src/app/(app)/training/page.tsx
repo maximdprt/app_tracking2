@@ -40,12 +40,12 @@ export default function TrainingPage() {
     return (
       <div className="space-y-10">
         <PageHeader title="Entraînement" />
-        <div className="grid gap-3 md:grid-cols-3">
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Skeleton className="h-16 rounded-xl" />
+          <Skeleton className="h-16 rounded-xl" />
         </div>
-        <Skeleton className="h-64" />
+        <Skeleton className="h-64 rounded-xl" />
       </div>
     );
   }
@@ -54,80 +54,94 @@ export default function TrainingPage() {
     <div className="space-y-10">
       <PageHeader
         title="Entraînement"
-        subtitle="Logging, programmes, progression"
         actions={
-          <Link href={ROUTES.trainingStart}>
-            <Button>
-              <Zap className="h-4 w-4 stroke-[1.5]" />
-              Démarrer une séance
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href={ROUTES.trainingPrograms}>
+              <Button variant="secondary">Programmes</Button>
+            </Link>
+            <Link href={ROUTES.trainingProgress}>
+              <Button variant="secondary">Progression</Button>
+            </Link>
+          </div>
         }
       />
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <StatCard label="Séances 7j" value={completed} />
-        <StatCard label="Volume semaine" value={lastVolume} suffix="kg" />
-        <StatCard label="Total séances" value={sessions.length} />
-      </div>
+      {/* ── Niveau 1 : CTA hero ── */}
+      <section>
+        <Card className="p-6 sm:p-8">
+          <p className="lift-label mb-3">Prochaine séance</p>
+          <Link href={ROUTES.trainingStart}>
+            <Button size="lg" className="w-full sm:w-auto">
+              <Zap className="h-4 w-4" />
+              Démarrer une séance
+            </Button>
+          </Link>
+        </Card>
+      </section>
 
-      <div className="flex gap-2">
-        <Link href={ROUTES.trainingPrograms}>
-          <Button variant="secondary">Voir mes programmes</Button>
-        </Link>
-        <Link href={ROUTES.trainingProgress}>
-          <Button variant="secondary">Voir mes progressions</Button>
-        </Link>
-      </div>
-
-      <h2 className="lift-title-lg text-text">Séances récentes</h2>
-
-      {sessions.length === 0 ? (
-        <EmptyState
-          icon={Dumbbell}
-          title="Aucune séance"
-          description="Lance ta première séance pour alimenter ta progression."
-          action={
-            <Link href={ROUTES.trainingStart}>
-              <Button>
-                <Plus className="h-4 w-4 stroke-[1.5]" />
-                Démarrer
-              </Button>
-            </Link>
-          }
-        />
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {sessions.map((s) => (
-            <Link key={s.id} href={`${ROUTES.training}/${s.id}`}>
-              <Card className="flex h-full cursor-pointer items-center justify-between hover:border-border-strong">
-                <div>
-                  <p className="lift-body-sm font-medium text-text">{s.workout_name ?? "Séance libre"}</p>
-                  <p className="lift-body-sm text-text-soft capitalize">
-                    {formatDateRelative(s.session_date)}
-                    {s.duration_minutes ? ` · ${formatDuration(s.duration_minutes)}` : ""}
-                  </p>
-                </div>
-                <Badge
-                  variant={
-                    s.status === "completed"
-                      ? "success"
-                      : s.status === "skipped"
-                        ? "warning"
-                        : "default"
-                  }
-                >
-                  {s.status === "completed"
-                    ? "Terminée"
-                    : s.status === "skipped"
-                      ? "Sautée"
-                      : "Planifiée"}
-                </Badge>
-              </Card>
-            </Link>
-          ))}
+      {/* ── Niveau 2 : Stats semaine ── */}
+      <section>
+        <p className="lift-label mb-4">Cette semaine</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="p-4">
+            <StatCard label="Séances complétées" value={completed} size="sm" />
+          </Card>
+          <Card className="p-4">
+            <StatCard label="Volume total" value={lastVolume} suffix="kg" size="sm" />
+          </Card>
         </div>
-      )}
+      </section>
+
+      {/* ── Niveau 3 : Historique ── */}
+      <section>
+        <p className="lift-label mb-4">Séances récentes</p>
+        {sessions.length === 0 ? (
+          <EmptyState
+            icon={Dumbbell}
+            title="Aucune séance"
+            description="Lance ta première séance pour alimenter ta progression."
+            action={
+              <Link href={ROUTES.trainingStart}>
+                <Button>
+                  <Plus className="h-4 w-4" />
+                  Démarrer
+                </Button>
+              </Link>
+            }
+          />
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {sessions.map((s) => (
+              <Link key={s.id} href={`${ROUTES.training}/${s.id}`}>
+                <Card className="flex h-full cursor-pointer items-center justify-between p-4 hover:border-border-strong">
+                  <div className="min-w-0">
+                    <p className="lift-title">{s.workout_name ?? "Séance libre"}</p>
+                    <p className="lift-body-soft capitalize mt-0.5">
+                      {formatDateRelative(s.session_date)}
+                      {s.duration_minutes ? ` · ${formatDuration(s.duration_minutes)}` : ""}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      s.status === "completed"
+                        ? "success"
+                        : s.status === "skipped"
+                          ? "warning"
+                          : "default"
+                    }
+                  >
+                    {s.status === "completed"
+                      ? "Terminée"
+                      : s.status === "skipped"
+                        ? "Sautée"
+                        : "Planifiée"}
+                  </Badge>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

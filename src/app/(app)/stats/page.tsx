@@ -39,17 +39,36 @@ const PERIODS: { value: Period; label: string }[] = [
   { value: "365", label: "1 an" },
 ];
 
-const TOOLTIP_STYLE = {
-  background: "var(--lift-bg-inverse)",
-  border: "1px solid var(--lift-border-default)",
-  borderRadius: "12px",
-  color: "var(--lift-text-inverse)",
-  fontSize: "12px",
-};
+/** Thème chart unifié — noir/beige, sans couleurs vives hors macros */
+const CHART_THEME = {
+  stroke: "var(--color-text)",
+  fill: "var(--color-text)",
+  grid: {
+    stroke: "var(--color-border)",
+    strokeDasharray: "0",
+    strokeOpacity: 0.5,
+  },
+  axis: {
+    fontSize: 11,
+    fontFamily: "Inter, system-ui, sans-serif",
+    fill: "var(--color-muted)",
+    letterSpacing: "0.04em",
+  },
+  tooltip: {
+    contentStyle: {
+      background: "var(--color-surface)",
+      border: "1px solid var(--color-border)",
+      borderRadius: "12px",
+      padding: "8px 12px",
+      fontSize: "13px",
+      color: "var(--color-text)",
+    },
+  },
+} as const;
 
-const CHART_GRID = "rgba(26,26,26,0.07)";
-const CHART_LINE = "#1A1A1A";
-const CHART_TICK = "var(--lift-text-tertiary)";
+const CHART_GRID = CHART_THEME.grid.stroke;
+const CHART_TICK = CHART_THEME.axis.fill;
+const CHART_LINE = CHART_THEME.stroke;
 
 export default function StatsPage() {
   const { data: user } = useUser();
@@ -119,21 +138,21 @@ export default function StatsPage() {
           ) : weightQuery.data && weightQuery.data.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={weightQuery.data}>
-                <CartesianGrid stroke={CHART_GRID} />
+                <CartesianGrid stroke={CHART_GRID} strokeOpacity={0.5} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: CHART_TICK, fontSize: 11 }}
+                  tick={CHART_THEME.axis}
                   tickFormatter={(v: string) => format(parseISO(v), "d MMM", { locale: fr })}
                 />
-                <YAxis tick={{ fill: CHART_TICK, fontSize: 11 }} domain={["auto", "auto"]} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <YAxis tick={CHART_THEME.axis} domain={["auto", "auto"]} />
+                <Tooltip contentStyle={CHART_THEME.tooltip.contentStyle} />
                 <Line
                   type="monotone"
                   dataKey="weight"
                   stroke={CHART_LINE}
                   strokeWidth={1.5}
-                  dot={{ fill: CHART_LINE, r: 3 }}
-                  activeDot={{ r: 5 }}
+                  dot={false}
+                  activeDot={{ r: 4, fill: CHART_LINE }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -155,15 +174,15 @@ export default function StatsPage() {
           ) : volumeQuery.data && volumeQuery.data.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={volumeQuery.data}>
-                <CartesianGrid stroke={CHART_GRID} />
+                <CartesianGrid stroke={CHART_GRID} strokeOpacity={0.5} />
                 <XAxis
                   dataKey="week"
-                  tick={{ fill: CHART_TICK, fontSize: 11 }}
+                  tick={CHART_THEME.axis}
                   tickFormatter={(v: string) => format(parseISO(v), "d MMM", { locale: fr })}
                 />
-                <YAxis tick={{ fill: CHART_TICK, fontSize: 11 }} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
-                <Bar dataKey="volume" fill={CHART_LINE} radius={[6, 6, 0, 0]} />
+                <YAxis tick={CHART_THEME.axis} />
+                <Tooltip contentStyle={CHART_THEME.tooltip.contentStyle} />
+                <Bar dataKey="volume" fill={CHART_LINE} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -186,24 +205,25 @@ export default function StatsPage() {
               <AreaChart data={caloriesQuery.data}>
                 <defs>
                   <linearGradient id="statsCaloriesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={CHART_LINE} stopOpacity={0.22} />
+                    <stop offset="0%" stopColor={CHART_LINE} stopOpacity={0.15} />
                     <stop offset="100%" stopColor={CHART_LINE} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke={CHART_GRID} />
+                <CartesianGrid stroke={CHART_GRID} strokeOpacity={0.5} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: CHART_TICK, fontSize: 11 }}
+                  tick={CHART_THEME.axis}
                   tickFormatter={(v: string) => format(parseISO(v), "d MMM", { locale: fr })}
                 />
-                <YAxis tick={{ fill: CHART_TICK, fontSize: 11 }} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <YAxis tick={CHART_THEME.axis} />
+                <Tooltip contentStyle={CHART_THEME.tooltip.contentStyle} />
                 <Area
                   type="monotone"
                   dataKey="calories"
                   stroke={CHART_LINE}
                   strokeWidth={1.5}
                   fill="url(#statsCaloriesGrad)"
+                  dot={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -255,9 +275,9 @@ function FrequencyHeatmap({ data, days }: { data: { date: string; count: number 
 
   function intensity(c: number) {
     if (c === 0) return "bg-surface-2";
-    if (c === 1) return "bg-[color-mix(in_srgb,var(--lift-text-primary)_12%,var(--lift-bg-card))]";
-    if (c === 2) return "bg-[color-mix(in_srgb,var(--lift-text-primary)_24%,var(--lift-bg-card))]";
-    return "bg-[color-mix(in_srgb,var(--lift-text-primary)_40%,var(--lift-bg-card))]";
+    if (c === 1) return "bg-[color-mix(in_srgb,var(--color-text)_12%,var(--color-surface))]";
+    if (c === 2) return "bg-[color-mix(in_srgb,var(--color-text)_28%,var(--color-surface))]";
+    return "bg-[color-mix(in_srgb,var(--color-text)_55%,var(--color-surface))]";
   }
 
   return (
@@ -275,9 +295,9 @@ function FrequencyHeatmap({ data, days }: { data: { date: string; count: number 
         <span>Moins</span>
         <div className="flex gap-0.5">
           <div className="h-2 w-2 rounded-sm bg-surface-2" />
-          <div className="h-2 w-2 rounded-sm bg-[color-mix(in_srgb,var(--lift-text-primary)_12%,var(--lift-bg-card))]" />
-          <div className="h-2 w-2 rounded-sm bg-[color-mix(in_srgb,var(--lift-text-primary)_24%,var(--lift-bg-card))]" />
-          <div className="h-2 w-2 rounded-sm bg-[color-mix(in_srgb,var(--lift-text-primary)_40%,var(--lift-bg-card))]" />
+          <div className="h-2 w-2 rounded-sm bg-[color-mix(in_srgb,var(--color-text)_12%,var(--color-surface))]" />
+          <div className="h-2 w-2 rounded-sm bg-[color-mix(in_srgb,var(--color-text)_28%,var(--color-surface))]" />
+          <div className="h-2 w-2 rounded-sm bg-[color-mix(in_srgb,var(--color-text)_55%,var(--color-surface))]" />
         </div>
         <span>Plus</span>
       </div>

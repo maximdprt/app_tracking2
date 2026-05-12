@@ -67,13 +67,13 @@ export default function NutritionHistoryPage() {
               }}
             >
               <div>
-                <p className="text-sm capitalize">{formatDateLong(day.date)}</p>
-                <p className="text-[10px] text-muted">
+                <p className="lift-body capitalize">{formatDateLong(day.date)}</p>
+                <p className="lift-label">
                   P {Math.round(day.protein)}g · G {Math.round(day.carbs)}g · L{" "}
                   {Math.round(day.fats)}g
                 </p>
               </div>
-              <p className="font-mono text-2xl font-semibold">{Math.round(day.calories)}</p>
+              <p className="lift-display-md lift-num">{Math.round(day.calories)}</p>
             </Card>
           ))}
         </div>
