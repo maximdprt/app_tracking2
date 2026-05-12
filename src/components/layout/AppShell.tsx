@@ -13,9 +13,11 @@ export function AppShell({ email, children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-background text-text lg:flex">
       <Sidebar email={email} />
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="relative flex min-h-screen min-w-0 flex-1 flex-col bg-background">
         <Topbar />
-        <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8 lg:px-10">{children}</main>
+        <main className="relative flex-1 px-4 pb-8 pt-4 sm:px-6 lg:px-10 lg:pb-12 lg:pt-6">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </main>
       </div>
       <CommandPalette />
       <ChatPanel />

@@ -6,23 +6,25 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background whitespace-nowrap",
+  "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background md-label-large whitespace-nowrap",
   {
     variants: {
       variant: {
         primary:
-          "bg-primary text-black hover:bg-primary-hover shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]",
+          "bg-primary text-on-primary shadow-[var(--shadow-inner-primary)] hover:bg-primary-hover md-elevation-1 hover:md-elevation-2",
         secondary:
-          "bg-surface-2 text-text border border-border hover:border-border-strong",
-        ghost: "text-text-soft hover:text-text hover:bg-surface-2",
-        danger: "bg-danger/15 text-danger border border-danger/20 hover:bg-danger/25",
-        outline: "border border-border-strong text-text hover:bg-surface-2",
+          "border border-outline-variant bg-surface-2 text-text hover:border-outline hover:bg-surface-bright md-elevation-0",
+        ghost: "text-text-soft hover:bg-surface-2 hover:text-text",
+        danger:
+          "border border-danger/35 bg-danger/12 text-danger hover:bg-danger/20 md-elevation-0",
+        outline:
+          "border border-outline bg-transparent text-text hover:bg-surface-2 md-elevation-0",
       },
       size: {
-        sm: "h-8 px-3 text-xs",
-        md: "h-10 px-4 text-sm",
+        sm: "h-9 px-4 text-xs",
+        md: "h-11 px-5 text-sm",
         lg: "h-12 px-6 text-base",
-        icon: "h-10 w-10",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },

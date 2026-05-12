@@ -11,6 +11,38 @@ import {
   getWeightHistoryReal,
 } from "@/services/supabase/queries/daily";
 import { todayISO } from "@/utils/dates";
+import type { DailySummary } from "@/types/domain";
+import type { MealWithIngredients } from "@/types/domain";
+import type { Profile } from "@/types/domain";
+import type { WorkoutSession } from "@/types/domain";
+import type { SleepLog, StepsLog, WeightLog } from "@/services/supabase/queries/daily";
+
+function sanitizeCoachMessages(raw: unknown): MistralMessage[] {
+  if (!Array.isArray(raw)) return [];
+  const out: MistralMessage[] = [];
+  for (const m of raw) {
+    if (!m || typeof m !== "object") continue;
+    const role = (m as { role?: string }).role;
+    const content = (m as { content?: string }).content;
+    if (role !== "user" && role !== "assistant") continue;
+    if (typeof content !== "string") continue;
+    out.push({ role, content });
+  }
+  return out;
+}
+
+function take<T>(
+  results: PromiseSettledResult<unknown>[],
+  index: number,
+  fallback: T,
+  label: string,
+): T {
+  const r = results[index];
+  if (!r) return fallback;
+  if (r.status === "fulfilled") return r.value as T;
+  console.warn(`[api/ai/coach] context "${label}" ignoré:`, r.reason);
+  return fallback;
+}
 
 export async function POST(request: Request) {
   try {
@@ -20,23 +52,32 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = (await request.json()) as { messages: MistralMessage[] };
-    if (!Array.isArray(body.messages)) {
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    const body = (await request.json()) as { messages?: unknown };
+    const messages = sanitizeCoachMessages(body.messages);
+    if (messages.length === 0) {
+      return NextResponse.json({ error: "Aucun message valide" }, { status: 400 });
     }
 
     const today = todayISO();
 
-    const [profile, summaries, todayMeals, todaySleep, todaySteps, recentSessions, recentWeight] =
-      await Promise.all([
-        getProfile(supabase, user.id),
-        getRecentSummaries(supabase, user.id, 7),
-        getMealsByDate(supabase, user.id, today),
-        getSleepByDate(supabase, user.id, today),
-        getStepsByDate(supabase, user.id, today),
-        getRecentSessions(supabase, user.id, 5),
-        getWeightHistoryReal(supabase, user.id, 30),
-      ]);
+    /** Tables optionnelles (ex. migration 0005 non appliquée) : on ne casse pas toute la route. */
+    const settled = await Promise.allSettled([
+      getProfile(supabase, user.id),
+      getRecentSummaries(supabase, user.id, 7),
+      getMealsByDate(supabase, user.id, today),
+      getSleepByDate(supabase, user.id, today),
+      getStepsByDate(supabase, user.id, today),
+      getRecentSessions(supabase, user.id, 5),
+      getWeightHistoryReal(supabase, user.id, 30),
+    ]);
+
+    const profile = take<Profile | null>(settled, 0, null, "profile");
+    const summaries = take<DailySummary[]>(settled, 1, [], "summaries");
+    const todayMeals = take<MealWithIngredients[]>(settled, 2, [], "meals");
+    const todaySleep = take<SleepLog | null>(settled, 3, null, "sleep_logs");
+    const todaySteps = take<StepsLog | null>(settled, 4, null, "steps_logs");
+    const recentSessions = take<WorkoutSession[]>(settled, 5, [], "workout_sessions");
+    const recentWeight = take<WeightLog[]>(settled, 6, [], "weight_logs");
 
     const totals = todayMeals.reduce(
       (acc, m) => ({
@@ -84,7 +125,7 @@ export async function POST(request: Request) {
       })),
     };
 
-    const stream = await streamCoach(body.messages, context);
+    const stream = await streamCoach(messages, context);
 
     return new Response(stream, {
       headers: {
@@ -94,6 +135,9 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("[api/ai/coach]", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const message =
+      err instanceof Error ? err.message : typeof err === "string" ? err : "Erreur serveur";
+    const safe = message.length > 400 ? `${message.slice(0, 397)}…` : message;
+    return NextResponse.json({ error: safe }, { status: 500 });
   }
 }

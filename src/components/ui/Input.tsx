@@ -6,8 +6,8 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
     <input
       ref={ref}
       className={cn(
-        "h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-text placeholder:text-muted",
-        "transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30",
+        "h-11 w-full rounded-full border border-outline-variant bg-surface-2 px-4 md-body-medium text-text placeholder:text-muted",
+        "transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25",
         "disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}

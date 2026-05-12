@@ -10,6 +10,8 @@ interface SheetProps {
   onOpenChange: (open: boolean) => void;
   side?: "left" | "right";
   title?: string;
+  /** Pas de ligne titre + fermeture : le contenu gère toute la chrome (ex. chat plein écran). */
+  hideHeader?: boolean;
   children: ReactNode;
   className?: string;
 }
@@ -19,6 +21,7 @@ export function Sheet({
   onOpenChange,
   side = "right",
   title,
+  hideHeader = false,
   children,
   className,
 }: SheetProps) {
@@ -41,32 +44,35 @@ export function Sheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            transition={{ duration: 0.18 }}
+            className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
             onClick={() => onOpenChange(false)}
           />
           <motion.aside
             initial={{ x }}
             animate={{ x: 0 }}
             exit={{ x }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
             className={cn(
-              "absolute top-0 h-full w-[280px] border-border bg-surface p-4 shadow-2xl",
-              side === "left" ? "left-0 border-r" : "right-0 border-l",
+              "absolute top-0 h-full w-[min(100vw-2rem,20rem)] border-outline-variant bg-surface md-elevation-3",
+              hideHeader ? "flex flex-col overflow-hidden p-0" : "overflow-y-auto p-5",
+              side === "left" ? "left-0 rounded-r-3xl border-r" : "right-0 rounded-l-3xl border-l",
               className,
             )}
           >
-            <div className="mb-4 flex items-center justify-between">
-              {title ? <p className="font-semibold">{title}</p> : <span />}
-              <button
-                type="button"
-                onClick={() => onOpenChange(false)}
-                className="rounded-lg p-1 text-muted hover:bg-surface-2 hover:text-text"
-                aria-label="Fermer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+            {!hideHeader ? (
+              <div className="mb-5 flex items-center justify-between gap-3">
+                {title ? <p className="md-title-medium text-text">{title}</p> : <span />}
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                  aria-label="Fermer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            ) : null}
             {children}
           </motion.aside>
         </div>

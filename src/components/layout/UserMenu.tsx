@@ -26,9 +26,9 @@ export function UserMenu({ email }: UserMenuProps) {
     <DropdownMenu
       align="left"
       trigger={
-        <div className="flex items-center gap-2 rounded-xl px-2 py-2 text-left transition-colors hover:bg-surface-2">
+        <div className="flex items-center gap-2 rounded-full px-2 py-2 text-left transition-colors hover:bg-surface-2">
           <Avatar fallback={email?.[0] ?? "?"} size="sm" />
-          <span className="truncate text-xs text-text-soft">
+          <span className="truncate md-body-medium text-text-soft">
             {email ? truncateEmail(email, 18) : "Utilisateur"}
           </span>
         </div>

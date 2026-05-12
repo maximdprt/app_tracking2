@@ -1,47 +1,62 @@
 @import "tailwindcss";
 
+/* —— Material Design 3 (thème sombre) + accent Lift —— */
 @theme {
-  /* Surfaces */
-  --color-background: #08090a;
-  --color-surface: #0f1011;
-  --color-surface-2: #16181b;
-  --color-border: rgba(255, 255, 255, 0.06);
-  --color-border-strong: rgba(255, 255, 255, 0.12);
+  /* Fond & surfaces (M3 : du plus bas au plus “haut”) */
+  --color-background: #0f0d13;
+  --color-surface: #1d1b20;
+  --color-surface-2: #2b2930;
+  --color-surface-bright: #36343b;
 
-  /* Text */
-  --color-text: #f5f5f5;
-  --color-text-soft: #b4b4b8;
-  --color-muted: #6e6e76;
+  /* Bordures & contour */
+  --color-border: color-mix(in srgb, var(--color-outline) 22%, transparent);
+  --color-border-strong: color-mix(in srgb, var(--color-outline) 40%, transparent);
+  --color-outline: #948f99;
+  --color-outline-variant: #49454f;
 
-  /* Accent — lime energy */
+  /* Texte (on-surface / variant) */
+  --color-text: #e6e0e9;
+  --color-text-soft: #cac4d0;
+  --color-muted: #938f99;
+
+  /* Accent primaire (tonal container M3) */
   --color-primary: #a3e635;
+  --color-on-primary: #1a1c00;
   --color-primary-hover: #b4f345;
-  --color-primary-soft: rgba(163, 230, 53, 0.12);
+  --color-primary-soft: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  --color-primary-container: #3a4a1a;
+  --color-on-primary-container: #d4f7a0;
 
-  /* Secondary */
+  /* Secondaire & sémantique */
   --color-secondary: #fb923c;
+  --color-protein: #7ec8f5;
+  --color-carbs: #f5d565;
+  --color-fats: #f2b8b5;
 
-  /* Macros */
-  --color-protein: #60a5fa;
-  --color-carbs: #fbbf24;
-  --color-fats: #f87171;
-
-  /* Semantic */
   --color-success: #34d399;
   --color-warning: #fbbf24;
-  --color-danger: #f87171;
-  --color-info: #60a5fa;
+  --color-danger: #f2b8b5;
+  --color-info: #7ec8f5;
 
-  /* Radius */
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.5rem;
+  /* Formes M3 : coins arrondis par défaut */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+  --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-inner-primary: inset 0 0 0 1px rgba(163, 230, 53, 0.2);
+  /* Élévation (ombre portée sombre) */
+  --shadow-md-0: none;
+  --shadow-md-1: 0px 1px 2px rgba(0, 0, 0, 0.28), 0px 1px 3px 1px rgba(0, 0, 0, 0.12);
+  --shadow-md-2: 0px 1px 2px rgba(0, 0, 0, 0.28), 0px 2px 6px 2px rgba(0, 0, 0, 0.14);
+  --shadow-md-3: 0px 4px 8px 3px rgba(0, 0, 0, 0.22), 0px 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md-fab: 0px 4px 8px 3px rgba(0, 0, 0, 0.28), 0px 1px 3px rgba(0, 0, 0, 0.24);
 
-  /* Fonts */
-  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --shadow-inner-primary: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 35%, transparent);
+
+  --font-sans: var(--font-inter), "Roboto Flex", system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
@@ -51,6 +66,10 @@
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html,
@@ -69,34 +88,32 @@ a {
   text-decoration: none;
 }
 
-/* Scrollbar premium */
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-outline-variant) 80%, transparent);
+  border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--color-outline);
 }
 
-/* Selection */
 ::selection {
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-on-primary-container);
 }
 
-/* Focus reset */
 :focus {
   outline: none;
 }
 
-/* Skeleton shimmer */
+/* Skeleton */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -117,9 +134,80 @@ a {
   animation: shimmer 1.6s ease-in-out infinite;
 }
 
-/* Hide native date picker icon (we use custom) */
+/* Typographie M3 (échelle simplifiée) */
+.md-display-small {
+  font-size: 2.25rem;
+  font-weight: 400;
+  line-height: 2.75rem;
+  letter-spacing: 0;
+}
+
+.md-headline-small {
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 2rem;
+  letter-spacing: 0;
+}
+
+.md-title-large {
+  font-size: 1.375rem;
+  font-weight: 500;
+  line-height: 1.75rem;
+  letter-spacing: 0.006rem;
+}
+
+.md-title-medium {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5rem;
+  letter-spacing: 0.009rem;
+}
+
+.md-body-large {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5rem;
+  letter-spacing: 0.031rem;
+}
+
+.md-body-medium {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+  letter-spacing: 0.015rem;
+}
+
+.md-label-large {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: 0.006rem;
+}
+
+.md-label-medium {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+  letter-spacing: 0.031rem;
+}
+
+/* Élévation utilitaire */
+.md-elevation-0 {
+  box-shadow: var(--shadow-md-0);
+}
+.md-elevation-1 {
+  box-shadow: var(--shadow-md-1);
+}
+.md-elevation-2 {
+  box-shadow: var(--shadow-md-2);
+}
+.md-elevation-3 {
+  box-shadow: var(--shadow-md-3);
+}
+
+/* Champ date */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: pointer;
 }

@@ -33,20 +33,24 @@ export function Sidebar({ email }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-screen w-[260px] shrink-0 flex-col border-r border-border bg-surface lg:sticky lg:top-0 lg:flex">
-      <div className="flex h-16 items-center px-6">
+    <aside className="hidden h-screen w-72 shrink-0 flex-col border-r border-border bg-surface md-elevation-1 lg:sticky lg:top-0 lg:flex">
+      <div className="flex h-[4.5rem] items-center px-5">
         <Link
           href={ROUTES.dashboard}
-          className="flex items-center gap-2 text-xl font-semibold tracking-tight"
+          className="group flex items-center gap-3 rounded-full py-1 pr-3 transition-colors hover:bg-surface-2"
         >
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-black">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-on-primary md-elevation-1 md-title-medium">
             L
           </span>
-          Lift
+          <span className="md-title-large text-text">Lift</span>
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3">
+      <p className="px-5 pb-2 pt-1 md-label-medium uppercase tracking-wider text-muted">
+        Navigation
+      </p>
+
+      <nav className="flex flex-1 flex-col gap-1 px-3">
         {links.map((link) => {
           const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
           const Icon = link.icon;
@@ -55,38 +59,44 @@ export function Sidebar({ email }: SidebarProps) {
               key={link.href}
               href={link.href}
               className={cn(
-                "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
+                "relative flex items-center gap-3 rounded-full px-4 py-2.5 md-body-large transition-colors",
                 active
-                  ? "bg-surface-2 text-text"
+                  ? "bg-primary-container text-on-primary-container md-elevation-0"
                   : "text-text-soft hover:bg-surface-2 hover:text-text",
               )}
             >
               {active ? (
                 <motion.span
-                  layoutId="sidebar-active"
-                  className="absolute -left-3 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
-                  transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+                  layoutId="sidebar-active-pill"
+                  className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-primary/25"
+                  transition={{ type: "spring", duration: 0.45, bounce: 0.12 }}
                 />
               ) : null}
-              <Icon className="h-4 w-4 shrink-0" />
-              <span>{link.label}</span>
+              <Icon
+                className={cn(
+                  "relative z-[1] h-[22px] w-[22px] shrink-0",
+                  active ? "text-on-primary-container" : "",
+                )}
+                aria-hidden
+              />
+              <span className="relative z-[1] md-label-large">{link.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="space-y-1 border-t border-border p-3">
+      <div className="mt-auto space-y-1 border-t border-border px-3 pb-4 pt-3">
         <Link
           href={ROUTES.profile}
           className={cn(
-            "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
+            "flex items-center gap-3 rounded-full px-4 py-2.5 md-body-large transition-colors",
             pathname === ROUTES.profile
               ? "bg-surface-2 text-text"
               : "text-text-soft hover:bg-surface-2 hover:text-text",
           )}
         >
-          <Settings2 className="h-4 w-4" />
-          Profil
+          <Settings2 className="h-[22px] w-[22px] shrink-0" aria-hidden />
+          <span className="md-label-large">Profil</span>
         </Link>
         <UserMenu email={email} />
       </div>

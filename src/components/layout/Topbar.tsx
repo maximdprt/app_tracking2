@@ -9,16 +9,16 @@ export function Topbar() {
   const setCommandOpen = useUIStore((s) => s.setCommandOpen);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/80 px-6 backdrop-blur-md lg:px-10">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 backdrop-blur-md md-elevation-2 sm:h-16 sm:px-6 lg:px-10">
       <SidebarMobile />
-      <div className="ml-auto">
+      <div className="flex flex-1 justify-end">
         <button
           type="button"
           onClick={() => setCommandOpen(true)}
-          className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-1.5 text-xs text-text-soft transition-colors hover:border-border-strong hover:text-text"
+          className="flex items-center gap-2 rounded-full border border-outline-variant/50 bg-surface-2 px-4 py-2 text-muted transition-colors hover:border-outline hover:bg-surface-bright hover:text-text-soft md-label-medium"
         >
-          <Search className="h-3.5 w-3.5" />
-          <span>Rechercher</span>
+          <Search className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+          <span className="hidden sm:inline">Rechercher</span>
           <KbdShortcut keys={["⌘", "K"]} />
         </button>
       </div>

@@ -37,13 +37,14 @@ export function SidebarMobile() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg p-2 text-text-soft hover:bg-surface-2 hover:text-text lg:hidden"
+        className="-ml-1 rounded-full p-2.5 text-text-soft transition-colors hover:bg-surface-2 hover:text-text lg:hidden"
         aria-label="Ouvrir le menu"
       >
         <Menu className="h-5 w-5" />
       </button>
       <Sheet open={open} onOpenChange={setOpen} side="left" title="Lift">
-        <nav className="space-y-0.5">
+        <p className="mb-3 md-label-medium uppercase tracking-wider text-muted">Navigation</p>
+        <nav className="flex flex-col gap-1">
           {links.map((link) => {
             const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
             const Icon = link.icon;
@@ -53,13 +54,13 @@ export function SidebarMobile() {
                 href={link.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm",
+                  "relative flex items-center gap-3 rounded-full px-4 py-2.5 md-label-large transition-colors",
                   active
-                    ? "bg-surface-2 text-text"
+                    ? "bg-primary-container text-on-primary-container"
                     : "text-text-soft hover:bg-surface-2 hover:text-text",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-[22px] w-[22px] shrink-0" aria-hidden />
                 {link.label}
               </Link>
             );

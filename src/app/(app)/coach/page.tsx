@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Send, Sparkles, Bot, User, RefreshCw } from "lucide-react";
+import { Sparkles, Bot, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { CoachChatThread } from "@/features/coach/CoachChatThread";
 import { useCoachChat } from "@/hooks/useCoachChat";
 import { useUser } from "@/hooks/useUser";
 import { createClient } from "@/services/supabase/client";
@@ -16,20 +15,10 @@ import { getDailySummary } from "@/services/supabase/queries/summaries";
 import { todayISO } from "@/utils/dates";
 import { toUserMessage } from "@/lib/errors";
 
-const SUGGESTIONS = [
-  "Comment ajuster mes macros cette semaine ?",
-  "Conseille-moi pour ma séance de demain.",
-  "Pourquoi je ne perds pas de poids ?",
-  "Ma fréquence d'entraînement est-elle bonne ?",
-];
-
 export default function CoachPage() {
   const { data: user } = useUser();
   const queryClient = useQueryClient();
-  const { messages, streaming, send, clear } = useCoachChat();
-
-  const [input, setInput] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { messages, clear } = useCoachChat();
 
   const summaryQuery = useQuery({
     queryKey: ["daily-summary", user?.id ?? null, todayISO()],
@@ -40,10 +29,6 @@ export default function CoachPage() {
       return getDailySummary(supabase, user.id, todayISO());
     },
   });
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -120,97 +105,18 @@ export default function CoachPage() {
           )}
         </Card>
 
-        {/* Chat */}
-        <Card className="lg:col-span-7">
-          <CardHeader>
+        {/* Chat — même logique que le panneau flottant (store partagé) */}
+        <Card className="flex min-h-[28rem] flex-col lg:col-span-7 lg:min-h-[32rem]">
+          <CardHeader className="shrink-0">
             <CardTitle className="flex items-center gap-2">
               <Bot className="h-4 w-4 text-primary" />
-              Chat
+              Conversation
             </CardTitle>
+            <CardDescription>Même historique que le coach accessible depuis le bouton flottant.</CardDescription>
           </CardHeader>
 
-          <div className="flex h-[480px] flex-col">
-            <div className="flex-1 space-y-3 overflow-y-auto pr-2">
-              {messages.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-                  <div className="grid h-12 w-12 place-items-center rounded-full bg-primary-soft">
-                    <Bot className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Pose-moi tes questions</p>
-                    <p className="mt-1 text-xs text-muted">
-                      J'ai accès à ton activité des 7 derniers jours.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {SUGGESTIONS.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => send(s)}
-                        className="rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs text-text-soft hover:border-border-strong hover:text-text"
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                messages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    {m.role === "assistant" ? (
-                      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">
-                        <Bot className="h-3.5 w-3.5" />
-                      </div>
-                    ) : null}
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-                        m.role === "user"
-                          ? "bg-primary-soft text-text"
-                          : "bg-surface-2 text-text-soft"
-                      }`}
-                    >
-                      <p className="whitespace-pre-line leading-relaxed">{m.content || "..."}</p>
-                    </div>
-                    {m.role === "user" ? (
-                      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-muted">
-                        <User className="h-3.5 w-3.5" />
-                      </div>
-                    ) : null}
-                  </div>
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="mt-3 flex gap-2 border-t border-border pt-3">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    send(input);
-                    setInput("");
-                  }
-                }}
-                placeholder="Écris ton message..."
-                disabled={streaming}
-              />
-              <Button
-                onClick={() => {
-                  send(input);
-                  setInput("");
-                }}
-                loading={streaming}
-                disabled={!input.trim()}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="flex min-h-0 flex-1 flex-col px-2 pb-6 pt-0 sm:px-4">
+            <CoachChatThread showKeyboardHint />
           </div>
         </Card>
       </div>
