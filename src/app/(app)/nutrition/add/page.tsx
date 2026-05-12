@@ -23,7 +23,7 @@ import { createMealWithIngredients } from "@/services/supabase/queries/meals";
 import { MEAL_TYPES } from "@/constants/meal-types";
 import { ROUTES } from "@/constants/routes";
 import { toUserMessage } from "@/lib/errors";
-import { macrosFromGrams } from "@/utils/nutrition";
+import { macrosFromGrams, per100gMacrosFromFoodItem } from "@/utils/nutrition";
 import type { CartItem, FoodItem, MealType } from "@/types/domain";
 
 type InputMode = "search" | "photo";
@@ -75,16 +75,12 @@ export default function AddMealPage() {
   );
 
   const previewMacros = pendingFood
-    ? macrosFromGrams(pendingGrams, {
-        calories: pendingFood.calories_per_100g ?? 0,
-        protein: pendingFood.protein_per_100g ?? 0,
-        carbs: pendingFood.carbs_per_100g ?? 0,
-        fats: pendingFood.fats_per_100g ?? 0,
-      })
+    ? macrosFromGrams(pendingGrams, per100gMacrosFromFoodItem(pendingFood))
     : null;
 
   function addToCart() {
     if (!pendingFood) return;
+    const per100 = per100gMacrosFromFoodItem(pendingFood);
     setCart((prev) => [
       ...prev,
       {
@@ -92,10 +88,10 @@ export default function AddMealPage() {
         name: pendingFood.name ?? "Aliment",
         foodItemId: pendingFood.id,
         grams: pendingGrams,
-        caloriesPer100g: pendingFood.calories_per_100g ?? 0,
-        proteinPer100g: pendingFood.protein_per_100g ?? 0,
-        carbsPer100g: pendingFood.carbs_per_100g ?? 0,
-        fatsPer100g: pendingFood.fats_per_100g ?? 0,
+        caloriesPer100g: per100.calories,
+        proteinPer100g: per100.protein,
+        carbsPer100g: per100.carbs,
+        fatsPer100g: per100.fats,
       },
     ]);
     setPendingFood(null);
@@ -231,7 +227,7 @@ export default function AddMealPage() {
                     ) : null}
                   </div>
                   <p className="font-mono text-xs text-text-soft">
-                    {Math.round(food.calories_per_100g ?? 0)} kcal/100g
+                    {Math.round(per100gMacrosFromFoodItem(food).calories)} kcal/100g
                   </p>
                 </button>
               ))}

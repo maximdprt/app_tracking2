@@ -253,20 +253,14 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
 
   return (
     <div className="rounded-xl border border-border bg-surface-2 p-3">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 text-left"
-      >
-        {/* Photo thumbnail */}
+      {/* Miniature et ligne récap sont des boutons distincts (pas de <button> imbriqué) */}
+      <div className="flex w-full items-center gap-2">
         {meal.photo_url ? (
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPhotoOpen(true);
-            }}
-            className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-surface"
+            onClick={() => setPhotoOpen(true)}
+            aria-label="Agrandir la photo du repas"
+            className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {photoUrlQuery.data ? (
               <img
@@ -282,17 +276,24 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
           </button>
         ) : null}
 
-        <div className="flex-1">
-          <p className="font-mono text-sm">{Math.round(meal.total_calories)} kcal</p>
-          <p className="text-[10px] text-muted">
-            P {Math.round(meal.total_protein)} · G {Math.round(meal.total_carbs)} · L{" "}
-            {Math.round(meal.total_fats)}
-          </p>
-        </div>
-        <ChevronDown
-          className={`h-3.5 w-3.5 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
-        />
-      </button>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg -m-1 p-1"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="font-mono text-sm">{Math.round(meal.total_calories)} kcal</p>
+            <p className="text-[10px] text-muted">
+              P {Math.round(meal.total_protein)} · G {Math.round(meal.total_carbs)} · L{" "}
+              {Math.round(meal.total_fats)}
+            </p>
+          </div>
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
 
       {open ? (
         <motion.div

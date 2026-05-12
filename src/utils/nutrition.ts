@@ -1,4 +1,4 @@
-import type { GoalType, MacroResult, Sex } from "@/types/domain";
+import type { FoodItem, GoalType, MacroResult, Sex } from "@/types/domain";
 import {
   ACTIVITY_MULTIPLIERS,
   FAT_KCAL_RATIO,
@@ -49,5 +49,23 @@ export function macrosFromGrams(
     protein: per100g.protein * ratio,
     carbs: per100g.carbs * ratio,
     fats: per100g.fats * ratio,
+  };
+}
+
+/**
+ * Beaucoup de lignes `food_items` n’ont que les colonnes legacy (calories_100g, proteines_100g…),
+ * les champs `*_per_100g` étant null. Sans ce repli, les macros affichées et enregistrées sont à 0.
+ */
+export function per100gMacrosFromFoodItem(food: FoodItem): {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+} {
+  return {
+    calories: food.calories_per_100g ?? food.calories_100g ?? 0,
+    protein: food.protein_per_100g ?? food.proteines_100g ?? 0,
+    carbs: food.carbs_per_100g ?? food.glucides_100g ?? 0,
+    fats: food.fats_per_100g ?? food.lipides_100g ?? 0,
   };
 }

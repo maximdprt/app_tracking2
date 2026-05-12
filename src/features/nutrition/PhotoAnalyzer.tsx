@@ -16,7 +16,7 @@ import { createMealWithIngredients } from "@/services/supabase/queries/meals";
 import { uploadMealPhoto } from "@/services/supabase/queries/storage";
 import { ROUTES } from "@/constants/routes";
 import { toUserMessage } from "@/lib/errors";
-import { macrosFromGrams } from "@/utils/nutrition";
+import { macrosFromGrams, per100gMacrosFromFoodItem } from "@/utils/nutrition";
 import { useDateStore } from "@/stores/useDateStore";
 import type { MealPhotoAnalysisApiResponse } from "@/types/meal-photo";
 import type { FoodItem, MealType } from "@/types/domain";
@@ -137,12 +137,7 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
   const totals = ingredients.reduce(
     (acc, row) => {
       if (!row.food) return acc;
-      const m = macrosFromGrams(row.grams, {
-        calories: row.food.calories_per_100g ?? 0,
-        protein: row.food.protein_per_100g ?? 0,
-        carbs: row.food.carbs_per_100g ?? 0,
-        fats: row.food.fats_per_100g ?? 0,
-      });
+      const m = macrosFromGrams(row.grams, per100gMacrosFromFoodItem(row.food));
       return {
         calories: acc.calories + m.calories,
         protein: acc.protein + m.protein,
@@ -169,12 +164,7 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
       const mealIngredients = ingredients
         .filter((r) => r.food !== null)
         .map((row) => {
-          const m = macrosFromGrams(row.grams, {
-            calories: row.food!.calories_per_100g ?? 0,
-            protein: row.food!.protein_per_100g ?? 0,
-            carbs: row.food!.carbs_per_100g ?? 0,
-            fats: row.food!.fats_per_100g ?? 0,
-          });
+          const m = macrosFromGrams(row.grams, per100gMacrosFromFoodItem(row.food!));
           return {
             user_id: user.id,
             food_item_id: row.food!.id,
@@ -369,12 +359,7 @@ function IngredientCard({
 }) {
   const macros =
     row.food && row.grams > 0
-      ? macrosFromGrams(row.grams, {
-          calories: row.food.calories_per_100g ?? 0,
-          protein: row.food.protein_per_100g ?? 0,
-          carbs: row.food.carbs_per_100g ?? 0,
-          fats: row.food.fats_per_100g ?? 0,
-        })
+      ? macrosFromGrams(row.grams, per100gMacrosFromFoodItem(row.food))
       : null;
 
   // Auto-search query state
