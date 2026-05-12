@@ -43,6 +43,11 @@ alter table public.sleep_logs enable row level security;
 alter table public.steps_logs enable row level security;
 alter table public.weight_logs enable row level security;
 
+-- Idempotent : permet de relancer le script sans erreur 42710 (policy already exists)
+drop policy if exists "sleep_logs_owner" on public.sleep_logs;
+drop policy if exists "steps_logs_owner" on public.steps_logs;
+drop policy if exists "weight_logs_owner" on public.weight_logs;
+
 create policy "sleep_logs_owner" on public.sleep_logs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "steps_logs_owner" on public.steps_logs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "weight_logs_owner" on public.weight_logs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
