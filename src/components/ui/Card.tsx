@@ -24,14 +24,14 @@ CardHeader.displayName = "CardHeader";
 
 export const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h3 ref={ref} className={cn("md-title-medium text-text", className)} {...props} />
+    <h3 ref={ref} className={cn("lift-title-md text-text", className)} {...props} />
   ),
 );
 CardTitle.displayName = "CardTitle";
 
 export const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLParagraphElement>>(
   ({ className, ...props }, ref) => (
-    <p ref={ref} className={cn("md-body-medium text-text-soft", className)} {...props} />
+    <p ref={ref} className={cn("lift-body-sm text-text-soft", className)} {...props} />
   ),
 );
 CardDescription.displayName = "CardDescription";

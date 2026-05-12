@@ -42,13 +42,13 @@
   --radius-full: var(--lift-radius-full);
 
   --shadow-md-0: none;
-  --shadow-md-1: 0 1px 2px rgb(26 26 26 / 0.06), 0 1px 3px rgb(26 26 26 / 0.04);
-  --shadow-md-2: 0 2px 6px rgb(26 26 26 / 0.08), 0 1px 2px rgb(26 26 26 / 0.06);
-  --shadow-md-3: 0 8px 20px rgb(26 26 26 / 0.1), 0 2px 6px rgb(26 26 26 / 0.06);
+  --shadow-md-1: 0 1px 2px rgb(26 26 26 / 0.04), 0 1px 3px rgb(26 26 26 / 0.03);
+  --shadow-md-2: 0 2px 4px rgb(26 26 26 / 0.05), 0 1px 2px rgb(26 26 26 / 0.04);
+  --shadow-md-3: 0 6px 16px rgb(26 26 26 / 0.07), 0 2px 4px rgb(26 26 26 / 0.04);
   --shadow-md-fab: 0 10px 24px rgb(26 26 26 / 0.14);
 
   --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-display: var(--font-display), serif;
+  --font-display: "Satoshi", var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
   --shadow-inner-primary: inset 0 0 0 1px color-mix(in srgb, var(--lift-accent-primary) 35%, transparent);
@@ -68,6 +68,20 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 html,
@@ -106,7 +120,22 @@ a {
   color: var(--lift-text-primary);
 }
 
-:focus {
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--lift-accent-primary);
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: none;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
   outline: none;
 }
 
@@ -130,12 +159,101 @@ a {
   animation: shimmer 1.6s ease-in-out infinite;
 }
 
-.lift-display-small {
-  font-family: var(--font-display), serif;
-  font-size: 1.25rem;
+/* ─── Typo Lift (Satoshi display + Inter corps) ───────────────────────────── */
+
+.lift-display-xl {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.lift-display-lg {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.lift-display-md {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.lift-display-sm {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.lift-title-lg {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
+
+.lift-title-md {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.lift-body-md {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
   font-weight: 400;
-  letter-spacing: -0.035em;
-  line-height: 1.35;
+  line-height: 1.55;
+}
+
+.lift-body-sm {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.lift-label-md {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.lift-label-sm {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.lift-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Rétrocompat — alias Material → Lift (mêmes règles dupliquées) */
+
+.lift-display-small {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 @media (min-width: 640px) {
@@ -144,62 +262,67 @@ a {
   }
 }
 
-.lift-hero-score {
-  font-family: var(--font-display), serif;
-  letter-spacing: -0.03em;
-}
-
 .md-display-small {
+  font-family: var(--font-display);
   font-size: 2.25rem;
-  font-weight: 400;
-  line-height: 2.75rem;
-  letter-spacing: -0.035em;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
 }
 
 .md-headline-small {
-  font-size: 1.5rem;
-  font-weight: 400;
-  line-height: 2rem;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 500;
   letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .md-title-large {
-  font-size: 1.375rem;
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
   font-weight: 500;
-  line-height: 1.75rem;
   letter-spacing: -0.01em;
+  line-height: 1.4;
 }
 
 .md-title-medium {
+  font-family: var(--font-sans);
   font-size: 1rem;
   font-weight: 500;
-  line-height: 1.5rem;
+  line-height: 1.4;
   letter-spacing: 0.009rem;
 }
 
 .md-body-large {
-  font-size: 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
   font-weight: 400;
-  line-height: 1.5rem;
+  line-height: 1.55;
   letter-spacing: 0.01rem;
 }
 
 .md-body-medium {
-  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
   font-weight: 400;
-  line-height: 1.25rem;
+  line-height: 1.5;
 }
 
 .md-label-large {
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.55;
 }
 
 .md-label-medium {
+  font-family: var(--font-sans);
   font-size: 0.75rem;
   font-weight: 500;
-  line-height: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.4;
 }
 
 .md-elevation-0 {

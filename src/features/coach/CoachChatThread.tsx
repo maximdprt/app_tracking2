@@ -42,14 +42,14 @@ function MessageBubble({ message, streamingTail }: { message: ChatMessage; strea
         )}
         aria-hidden
       >
-        {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
+        {isUser ? <User className="h-3.5 w-3.5 stroke-[1.5]" /> : <Bot className="h-3.5 w-3.5 stroke-[1.5]" />}
       </div>
       <div
         className={cn(
-          "max-w-80 rounded-2xl px-3.5 py-2.5 md-body-medium",
+          "max-w-[80%] rounded-2xl px-4 py-3 lift-body-md",
           isUser
-            ? "rounded-br-md bg-primary-container/35 text-text"
-            : "rounded-bl-md bg-surface-2 text-text-soft",
+            ? "rounded-br-sm bg-primary text-on-primary"
+            : "rounded-bl-sm border border-border bg-surface text-text-soft",
         )}
       >
         {isEmptyAssistant && streamingTail ? (
@@ -117,7 +117,7 @@ export function CoachChatThread({
         {messages.length === 0 ? (
           <div className="flex min-h-[min(50vh,18rem)] flex-col items-center justify-center gap-5 px-1 text-center">
             <div className="grid h-14 w-14 place-items-center rounded-full bg-primary-container/50 md-elevation-1">
-              <Bot className="h-6 w-6 text-on-primary-container" aria-hidden />
+              <Bot className="h-6 w-6 stroke-[1.5] text-on-primary-container" aria-hidden />
             </div>
             <div className="space-y-1">
               <p className="md-title-medium text-text">Parlons de ton entraînement</p>
@@ -132,7 +132,7 @@ export function CoachChatThread({
                   type="button"
                   onClick={() => void send(s)}
                   disabled={streaming}
-                  className="rounded-full border border-outline-variant/80 bg-surface-2 px-4 py-2.5 text-left md-body-medium text-text-soft transition-colors hover:border-outline hover:bg-surface-bright hover:text-text disabled:opacity-50"
+                  className="rounded-lg border border-outline-variant/80 bg-surface-2 px-4 py-2.5 text-left lift-body-sm text-text-soft transition-colors hover:border-outline hover:bg-surface-bright hover:text-text disabled:opacity-50"
                 >
                   {s}
                 </button>
@@ -163,7 +163,7 @@ export function CoachChatThread({
 
       <div className="mt-3 shrink-0 border-t border-border pt-3">
         <div className="flex items-end gap-2">
-          <div className="relative min-h-11 flex-1 rounded-3xl border border-outline-variant bg-surface-2 px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+          <div className="relative min-h-11 flex-1 rounded-xl border border-outline-variant bg-surface-2 px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
             <textarea
               ref={taRef}
               value={input}

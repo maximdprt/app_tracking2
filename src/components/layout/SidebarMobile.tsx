@@ -43,7 +43,7 @@ export function SidebarMobile() {
         <Menu className="h-5 w-5" />
       </button>
       <Sheet open={open} onOpenChange={setOpen} side="left" title="Lift">
-        <p className="mb-3 md-label-medium uppercase tracking-wider text-muted">Navigation</p>
+        <p className="mb-3 md-label-medium text-muted">Navigation</p>
         <nav className="flex flex-col gap-1">
           {links.map((link) => {
             const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
@@ -54,13 +54,13 @@ export function SidebarMobile() {
                 href={link.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "relative flex items-center gap-3 rounded-full px-4 py-2.5 md-label-large transition-colors",
+                  "relative flex items-center gap-3 rounded-lg px-4 py-2.5 md-label-large transition-colors",
                   active
                     ? "bg-primary-container text-on-primary-container"
                     : "text-text-soft hover:bg-surface-2 hover:text-text",
                 )}
               >
-                <Icon className="size-5.5 shrink-0" aria-hidden />
+                <Icon className="size-5.5 shrink-0 stroke-[1.5]" aria-hidden />
                 {link.label}
               </Link>
             );

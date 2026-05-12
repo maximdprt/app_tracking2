@@ -15,9 +15,9 @@ export function Topbar() {
         <button
           type="button"
           onClick={() => setCommandOpen(true)}
-          className="flex items-center gap-2 rounded-full border border-outline-variant/50 bg-surface-2 px-4 py-2 text-muted transition-colors hover:border-outline hover:bg-surface-bright hover:text-text-soft md-label-medium"
+          className="flex items-center gap-2 rounded-lg border border-outline-variant/50 bg-surface-2 px-4 py-2 text-muted transition-colors hover:border-outline hover:bg-surface-bright hover:text-text-soft md-label-medium"
         >
-          <Search className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+          <Search className="h-4 w-4 shrink-0 stroke-[1.5] opacity-80" aria-hidden />
           <span className="hidden sm:inline">Rechercher</span>
           <KbdShortcut keys={["⌘", "K"]} />
         </button>

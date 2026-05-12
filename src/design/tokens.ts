@@ -67,7 +67,7 @@ export const tokens = {
   font: {
     family: {
       sans: "Inter",
-      display: "InstrumentSerif",
+      display: "Satoshi",
       mono: "JetBrainsMono",
     },
     size: {

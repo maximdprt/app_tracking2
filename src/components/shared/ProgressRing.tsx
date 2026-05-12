@@ -16,6 +16,17 @@ interface ProgressRingProps {
   className?: string;
 }
 
+function centerClassForSize(size: number): string {
+  if (size >= 135) return "lift-display-lg";
+  if (size >= 105) return "lift-display-md";
+  return "lift-display-sm";
+}
+
+function sublabelClass(sublabel: string | undefined): string {
+  if (!sublabel) return "lift-label-sm text-muted";
+  return sublabel.length <= 2 ? "lift-label-sm text-muted" : "lift-label-md text-muted";
+}
+
 export function ProgressRing({
   value,
   max,
@@ -62,10 +73,10 @@ export function ProgressRing({
       </svg>
       {showLabel ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="font-mono text-2xl font-semibold tracking-tight">
+          <span className={cn(centerClassForSize(size), "tracking-tight text-text")}>
             {label ?? `${percentage}%`}
           </span>
-          {sublabel ? <span className="text-[10px] text-muted">{sublabel}</span> : null}
+          {sublabel ? <span className={cn(sublabelClass(sublabel), "mt-0.5")}>{sublabel}</span> : null}
         </div>
       ) : null}
     </div>

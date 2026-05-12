@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background md-label-large whitespace-nowrap",
+  "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background lift-body-sm whitespace-nowrap [&_svg]:stroke-[1.5]",
   {
     variants: {
       variant: {
@@ -21,10 +21,10 @@ const buttonVariants = cva(
           "border border-outline bg-transparent text-text hover:bg-surface-2 md-elevation-0",
       },
       size: {
-        sm: "h-9 px-4 text-xs",
-        md: "h-11 px-5 text-sm",
-        lg: "h-12 px-6 text-base",
-        icon: "h-11 w-11",
+        sm: "h-9 px-4",
+        md: "h-11 px-5",
+        lg: "h-12 px-6",
+        icon: "h-11 w-11 shrink-0 rounded-full p-0",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },

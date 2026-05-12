@@ -174,7 +174,9 @@ export default function HabitsMatrixPage() {
 
       <Card className="border-[var(--lift-border-default)] bg-[var(--lift-bg-inverse)] text-[var(--lift-text-inverse)] md-elevation-1">
         <CardHeader>
-          <CardTitle className="lift-hero-score text-3xl">{score.toFixed(1)}%</CardTitle>
+          <CardTitle className="lift-display-lg text-[var(--lift-text-inverse)]">
+            {score.toFixed(1)}%
+          </CardTitle>
           <CardDescription className="text-[color:color-mix(in_srgb,var(--lift-text-inverse)_72%,transparent)]">
             Score hebdomadaire · semaine du {week[0]} au {week[6]}
           </CardDescription>

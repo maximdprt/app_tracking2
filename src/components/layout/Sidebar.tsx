@@ -39,7 +39,7 @@ export function Sidebar({ email }: SidebarProps) {
       <div className="flex h-18 items-center px-5">
         <Link
           href={ROUTES.dashboard}
-          className="group flex items-center gap-3 rounded-full py-1 pr-3 transition-colors hover:bg-surface-2"
+          className="group flex items-center gap-3 rounded-lg py-1 pr-3 transition-colors hover:bg-surface-2"
         >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-on-primary md-elevation-1 md-title-medium">
             L
@@ -48,9 +48,7 @@ export function Sidebar({ email }: SidebarProps) {
         </Link>
       </div>
 
-      <p className="px-5 pb-2 pt-1 md-label-medium uppercase tracking-wider text-muted">
-        Navigation
-      </p>
+      <p className="px-5 pb-2 pt-1 md-label-medium text-muted">Navigation</p>
 
       <nav className="flex flex-1 flex-col gap-1 px-3">
         {links.map((link) => {
@@ -61,7 +59,7 @@ export function Sidebar({ email }: SidebarProps) {
               key={link.href}
               href={link.href}
               className={cn(
-                "relative flex items-center gap-3 rounded-full px-4 py-2.5 md-body-large transition-colors",
+                "relative flex items-center gap-3 rounded-lg px-4 py-2.5 md-body-large transition-colors",
                 active
                   ? "bg-primary-container text-on-primary-container md-elevation-0"
                   : "text-text-soft hover:bg-surface-2 hover:text-text",
@@ -70,13 +68,13 @@ export function Sidebar({ email }: SidebarProps) {
               {active ? (
                 <motion.span
                   layoutId="sidebar-active-pill"
-                  className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-primary/25"
+                  className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-primary/25"
                   transition={{ type: "spring", duration: 0.45, bounce: 0.12 }}
                 />
               ) : null}
               <Icon
                 className={cn(
-                  "relative z-1 size-5.5 shrink-0",
+                  "relative z-1 size-5.5 shrink-0 stroke-[1.5]",
                   active ? "text-on-primary-container" : "",
                 )}
                 aria-hidden
@@ -91,13 +89,13 @@ export function Sidebar({ email }: SidebarProps) {
         <Link
           href={ROUTES.profile}
           className={cn(
-            "flex items-center gap-3 rounded-full px-4 py-2.5 md-body-large transition-colors",
+            "flex items-center gap-3 rounded-lg px-4 py-2.5 md-body-large transition-colors",
             pathname === ROUTES.profile
               ? "bg-surface-2 text-text"
               : "text-text-soft hover:bg-surface-2 hover:text-text",
           )}
         >
-          <Settings2 className="size-5.5 shrink-0" aria-hidden />
+          <Settings2 className="size-5.5 shrink-0 stroke-[1.5]" aria-hidden />
           <span className="md-label-large">Profil</span>
         </Link>
         <UserMenu email={email} />

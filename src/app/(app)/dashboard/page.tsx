@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/services/supabase/client";
 import { useUser } from "@/hooks/useUser";
 import { getWeightHistory } from "@/services/supabase/queries/stats";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { totals, targets, sessions, isLoading } = useToday();
@@ -69,22 +70,20 @@ export default function DashboardPage() {
   })();
 
   return (
-    <div className="space-y-6">
-      <header className="mb-2 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--lift-border-subtle)] pb-4">
-        <div>
-          <h1 className="lift-display-small text-xl sm:text-2xl">
-            Salut{displayFirstName ? ` ${displayFirstName}` : ""}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{formatDateRelative(today)}</p>
-        </div>
+    <div className="space-y-10">
+      <header className="mb-2 flex flex-col gap-2">
+        <p className="lift-label-md text-muted">{formatDateRelative(today)}</p>
+        <h1 className="lift-display-lg text-text">
+          Salut{displayFirstName ? ` ${displayFirstName}` : ""}
+        </h1>
       </header>
 
       {/* Hero — MacroRing */}
       <div className="grid gap-4 lg:grid-cols-12">
-        <Card className="border-[var(--lift-border-subtle)] bg-[var(--lift-bg-card)] lg:col-span-12 md-elevation-1">
+        <Card className="border-[var(--lift-border-subtle)] bg-[var(--lift-bg-card)] p-6 sm:p-8 lg:col-span-12 md-elevation-1">
           <CardHeader>
             <div>
-              <CardTitle>Macros du jour</CardTitle>
+              <CardTitle className="lift-title-lg">Macros du jour</CardTitle>
               <CardDescription>
                 Reste {Math.round(calsRemaining)} kcal · objectif {targets.calories}
               </CardDescription>
@@ -201,7 +200,7 @@ export default function DashboardPage() {
               }
             >
               <Button variant={todaySession ? "secondary" : "primary"} size="lg" className="w-full">
-                <Zap className="h-4 w-4" />
+                <Zap className="h-4 w-4 stroke-[1.5]" />
                 {todaySession ? "Continuer ma séance" : "Démarrer ma séance"}
               </Button>
             </Link>
@@ -216,7 +215,7 @@ export default function DashboardPage() {
           </CardHeader>
           <Link href={ROUTES.coach}>
             <Button>
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-4 w-4 stroke-[1.5]" />
               Ouvrir mon coach
             </Button>
           </Link>
@@ -229,8 +228,8 @@ export default function DashboardPage() {
       {(streaks?.food_log_current ?? 0) > 0 || (streaks?.workout_current ?? 0) > 0 ? (
         <div className="flex flex-wrap gap-3">
           {(streaks?.food_log_current ?? 0) > 0 ? (
-            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-4 py-2">
-              <Flame className="h-4 w-4 text-orange-500" />
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-4 py-2">
+              <Flame className="h-4 w-4 stroke-[1.5] text-orange-500" />
               <span className="text-sm font-semibold text-text">
                 {streaks!.food_log_current}j
               </span>
@@ -238,8 +237,8 @@ export default function DashboardPage() {
             </div>
           ) : null}
           {(streaks?.workout_current ?? 0) > 0 ? (
-            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-4 py-2">
-              <Zap className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-4 py-2">
+              <Zap className="h-4 w-4 stroke-[1.5] text-primary" />
               <span className="text-sm font-semibold text-text">
                 {streaks!.workout_current}j
               </span>
@@ -270,13 +269,13 @@ export default function DashboardPage() {
       <div className="flex flex-wrap gap-2">
         <Link href={ROUTES.nutritionAdd}>
           <Button variant="outline">
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 stroke-[1.5]" />
             Ajouter un repas
           </Button>
         </Link>
         <Link href={ROUTES.trainingStart}>
           <Button variant="outline">
-            <Zap className="h-4 w-4" />
+            <Zap className="h-4 w-4 stroke-[1.5]" />
             Nouvelle séance
           </Button>
         </Link>
@@ -301,12 +300,10 @@ function DailyStatCard({
   return (
     <Card className="flex h-28 flex-col justify-between">
       <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
+        <p className="lift-label-md text-muted">{label}</p>
         {badge}
       </div>
-      <p className={`font-mono text-2xl font-semibold ${muted ? "text-muted" : "text-text"}`}>
-        {value}
-      </p>
+      <p className={cn("lift-display-md", muted ? "text-muted" : "text-text")}>{value}</p>
       {action ? <div>{action}</div> : <span />}
     </Card>
   );
@@ -314,7 +311,7 @@ function DailyStatCard({
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <Skeleton className="h-12 w-64" />
       <div className="grid gap-4 lg:grid-cols-12">
         <Skeleton className="h-64 lg:col-span-5" />
