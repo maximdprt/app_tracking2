@@ -18,7 +18,7 @@ import { ROUTES } from "@/constants/routes";
 import { toUserMessage } from "@/lib/errors";
 import { macrosFromGrams } from "@/utils/nutrition";
 import { useDateStore } from "@/stores/useDateStore";
-import type { DetectedIngredient, MealAnalysisResult } from "@/services/ai/mistral";
+import type { MealPhotoAnalysisApiResponse } from "@/types/meal-photo";
 import type { FoodItem, MealType } from "@/types/domain";
 
 interface PhotoAnalyzerProps {
@@ -46,7 +46,7 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
   const [phase, setPhase] = useState<Phase>("upload");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<MealAnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<MealPhotoAnalysisApiResponse | null>(null);
   const [ingredients, setIngredients] = useState<IngredientRow[]>([]);
 
   const handleFileChange = useCallback((file: File | null) => {
@@ -77,7 +77,7 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
         const errorData = (await res.json()) as { error?: string };
         throw new Error(errorData.error ?? "Erreur analyse");
       }
-      const result = (await res.json()) as MealAnalysisResult;
+      const result = (await res.json()) as MealPhotoAnalysisApiResponse;
 
       if (result.ingredients.length === 0) {
         toast.warning(
@@ -89,35 +89,18 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
 
       setAnalysisResult(result);
 
-      // Build ingredient rows and auto-search food matches
+      // Lignes pré-remplies avec les `food_items` résolus côté serveur (Supabase)
       const rows: IngredientRow[] = result.ingredients.map((ing) => ({
         key: crypto.randomUUID(),
         name: ing.name,
         grams: ing.estimatedGrams,
         estimatedGrams: ing.estimatedGrams,
         confidence: ing.confidence,
-        food: null,
-        loadingFood: true,
+        food: ing.food_item,
+        loadingFood: false,
       }));
       setIngredients(rows);
       setPhase("review");
-
-      // Auto-search food matches in parallel
-      const supabase = createClient();
-      const searches = await Promise.allSettled(
-        result.ingredients.map((ing) => searchFoods(supabase, ing.name, 3)),
-      );
-
-      setIngredients((prev) =>
-        prev.map((row, i) => {
-          const settled = searches[i];
-          const match =
-            settled !== undefined && settled.status === "fulfilled" && settled.value.length > 0
-              ? (settled.value[0] ?? null)
-              : null;
-          return { ...row, food: match, loadingFood: false };
-        }),
-      );
     } catch (err) {
       toast.error(toUserMessage(err));
       setPhase("upload");
@@ -436,7 +419,10 @@ function IngredientCard({
             <Skeleton className="h-4 w-32" />
           ) : row.food ? (
             <p className="text-xs text-text-soft">
-              Correspond à : <span className="text-text">{row.food.name}</span>
+              Base Supabase :{" "}
+              <span className="font-mono text-text">
+                {row.food.name ?? row.food.nom}
+              </span>
               {macros ? (
                 <span className="ml-2 font-mono text-muted">
                   {Math.round(macros.calories)} kcal · P{Math.round(macros.protein)} · G

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/services/supabase/server";
 import { analyzeMealPhoto } from "@/services/ai/mistral";
+import { matchIngredientLabelsToFoodItems } from "@/services/supabase/queries/foods";
+import type { MealPhotoAnalysisApiResponse } from "@/types/meal-photo";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -26,8 +28,22 @@ export async function POST(request: Request) {
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");
 
-    const result = await analyzeMealPhoto(base64, file.type);
-    return NextResponse.json(result);
+    const ai = await analyzeMealPhoto(base64, file.type);
+
+    const matches = await matchIngredientLabelsToFoodItems(
+      supabase,
+      ai.ingredients.map((i) => i.name),
+    );
+
+    const payload: MealPhotoAnalysisApiResponse = {
+      description: ai.description,
+      ingredients: ai.ingredients.map((ing, index) => ({
+        ...ing,
+        food_item: matches[index] ?? null,
+      })),
+    };
+
+    return NextResponse.json(payload);
   } catch (err) {
     console.error("[api/ai/meal-photo]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
