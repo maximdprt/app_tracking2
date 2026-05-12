@@ -11,7 +11,7 @@ export function KbdShortcut({ keys, className }: KbdShortcutProps) {
       {keys.map((k) => (
         <kbd
           key={k}
-          className="inline-flex h-5 min-w-[20px] items-center justify-center rounded border border-border-strong bg-surface-2 px-1 font-mono text-[10px] text-muted"
+          className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border-strong bg-surface-2 px-1 font-mono text-xs text-muted"
         >
           {k}
         </kbd>

@@ -106,7 +106,7 @@ export default function CoachPage() {
         </Card>
 
         {/* Chat — même logique que le panneau flottant (store partagé) */}
-        <Card className="flex min-h-[28rem] flex-col lg:col-span-7 lg:min-h-[32rem]">
+        <Card className="flex min-h-112 flex-col lg:col-span-7 lg:min-h-128">
           <CardHeader className="shrink-0">
             <CardTitle className="flex items-center gap-2">
               <Bot className="h-4 w-4 text-primary" />

@@ -51,7 +51,7 @@ export function DropdownMenu({ trigger, items, align = "right", className }: Dro
             exit={{ opacity: 0, y: 4, scale: 0.97 }}
             transition={{ duration: 0.12, ease: "easeOut" }}
             className={cn(
-              "absolute z-50 mt-2 min-w-[180px] overflow-hidden rounded-xl border border-border-strong bg-surface-2 p-1 shadow-2xl",
+              "absolute z-50 mt-2 min-w-45 overflow-hidden rounded-xl border border-border-strong bg-surface-2 p-1 shadow-2xl",
               align === "right" ? "right-0" : "left-0",
             )}
           >

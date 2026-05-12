@@ -52,19 +52,19 @@ export function CommandPalette() {
       open={open}
       onOpenChange={setOpen}
       label="Command Palette"
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/60 p-4 pt-[15vh] backdrop-blur-sm"
+      className="fixed inset-0 z-60 flex items-start justify-center bg-black/60 p-4 pt-30 backdrop-blur-sm"
     >
       <Command className="w-full max-w-xl overflow-hidden rounded-2xl border border-border-strong bg-surface-2 shadow-2xl">
         <Command.Input
           placeholder="Rechercher une action..."
           className="h-12 w-full border-b border-border bg-transparent px-4 text-sm text-text outline-none placeholder:text-muted"
         />
-        <Command.List className="max-h-[400px] overflow-y-auto p-2">
+        <Command.List className="max-h-100 overflow-y-auto p-2">
           <Command.Empty className="px-3 py-8 text-center text-sm text-muted">
             Aucun résultat
           </Command.Empty>
 
-          <Command.Group heading="Actions rapides" className="text-[11px] uppercase text-muted">
+          <Command.Group heading="Actions rapides" className="text-xs uppercase text-muted">
             <CommandItem onSelect={() => go(ROUTES.nutritionAdd)} icon={<Plus className="h-4 w-4" />}>
               Ajouter un repas
             </CommandItem>
@@ -79,11 +79,11 @@ export function CommandPalette() {
               icon={<MessageCircle className="h-4 w-4" />}
             >
               Ouvrir le coach IA
-              <span className="ml-auto font-mono text-[10px] text-muted">⌘J</span>
+              <span className="ml-auto font-mono text-xs text-muted">⌘J</span>
             </CommandItem>
           </Command.Group>
 
-          <Command.Group heading="Navigation" className="mt-2 text-[11px] uppercase text-muted">
+          <Command.Group heading="Navigation" className="mt-2 text-xs uppercase text-muted">
             <CommandItem onSelect={() => go(ROUTES.dashboard)} icon={<Home className="h-4 w-4" />}>
               Dashboard
             </CommandItem>

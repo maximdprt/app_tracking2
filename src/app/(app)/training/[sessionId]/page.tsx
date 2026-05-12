@@ -16,14 +16,17 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Badge } from "@/components/ui/Badge";
 import { ExerciseLogger } from "@/features/training/ExerciseLogger";
 import { ExerciseProgressChart } from "@/features/training/ExerciseProgressChart";
+import { AutoProgressPanel } from "@/features/training/AutoProgressPanel";
 import { ROUTES } from "@/constants/routes";
 import { useWorkoutSession } from "@/hooks/useWorkoutSession";
 import { useUser } from "@/hooks/useUser";
 import { createClient } from "@/services/supabase/client";
 import { addExercise } from "@/services/supabase/queries/exercises";
 import { completeSession } from "@/services/supabase/queries/workouts";
+import { upsertWorkoutMetrics } from "@/services/supabase/queries/workoutMetrics";
 import { totalVolume } from "@/utils/workouts";
 import { toUserMessage } from "@/lib/errors";
+import { todayISO } from "@/utils/dates";
 
 interface PageProps {
   params: Promise<{ sessionId: string }>;
@@ -80,12 +83,38 @@ export default function SessionDetailPage({ params }: PageProps) {
 
   const finishMutation = useMutation({
     mutationFn: async () => {
+      if (!user?.id || !session) throw new Error("Unauthorized");
       const supabase = createClient();
       await completeSession(supabase, sessionId, elapsed);
+
+      // Save workout metrics for each exercise (best e1RM, volume)
+      await Promise.allSettled(
+        session.exercises.map((ex) =>
+          upsertWorkoutMetrics(supabase, {
+            userId: user.id,
+            exerciseName: ex.exercise_name,
+            sessionId,
+            sessionDate: session.session_date ?? todayISO(),
+            sets: ex.sets.map((s) => ({ weight: s.weight, reps: s.reps })),
+          }),
+        ),
+      );
+
+      // Update workout streak (upsert_streak RPC added in migration 0008)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .rpc("upsert_streak", {
+          p_user_id: user.id,
+          p_type: "workout",
+          p_date: session.session_date ?? todayISO(),
+        })
+        .then(() => {})
+        .catch(() => {});
     },
     onSuccess: () => {
-      toast.success("Séance terminée");
+      toast.success("Séance terminée 🎉");
       queryClient.invalidateQueries({ queryKey: ["workout-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["auto-progress"] });
       router.push(ROUTES.training);
     },
     onError: (err) => toast.error(toUserMessage(err)),
@@ -183,7 +212,7 @@ export default function SessionDetailPage({ params }: PageProps) {
 
       {/* Sticky bottom bar */}
       {session.status === "planned" ? (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface/95 px-6 py-3 backdrop-blur-md lg:left-[260px]">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface/95 px-6 py-3 backdrop-blur-md lg:left-65">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
             <div>
               <p className="text-[10px] uppercase text-muted">Volume séance</p>
@@ -201,6 +230,14 @@ export default function SessionDetailPage({ params }: PageProps) {
             />
           </div>
         </div>
+      ) : null}
+
+      {/* Auto-progression panel — shown when session is completed */}
+      {session.status === "completed" && user?.id && session.exercises.length > 0 ? (
+        <AutoProgressPanel
+          userId={user.id}
+          exerciseNames={session.exercises.map((e) => e.exercise_name)}
+        />
       ) : null}
 
       {/* Add exercise dialog */}

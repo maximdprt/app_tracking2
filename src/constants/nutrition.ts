@@ -1,12 +1,22 @@
+/**
+ * Constantes UI et étiquettes des goals — séparées du calcul pur.
+ * Pour les formules scientifiques, voir src/lib/nutrition/calculations.ts.
+ */
 import type { GoalType } from "@/types/domain";
+import {
+  ACTIVITY_MULTIPLIERS,
+  PROTEIN_G_PER_KG,
+  FAT_KCAL_RATIO,
+  GOAL_CALORIE_ADJUSTMENT,
+} from "@/lib/nutrition/calculations";
 
-export const ACTIVITY_MULTIPLIERS = {
-  sedentary: 1.2,
-  light: 1.375,
-  moderate: 1.55,
-  intense: 1.725,
-  veryIntense: 1.9,
-} as const;
+// Ré-exporte pour éviter d'avoir à changer tous les imports existants
+export { ACTIVITY_MULTIPLIERS, PROTEIN_G_PER_KG, FAT_KCAL_RATIO, GOAL_CALORIE_ADJUSTMENT };
+
+/** Alias rétro-compatibilité (ancienne constante flat — à terme supprimer) */
+export const PROTEIN_PER_KG = PROTEIN_G_PER_KG.maintenance;
+/** Alias rétro-compatibilité */
+export const FAT_KCAL_RATIO_DEFAULT = FAT_KCAL_RATIO.balanced;
 
 export const GOAL_DEFINITIONS: Record<
   GoalType,
@@ -14,46 +24,49 @@ export const GOAL_DEFINITIONS: Record<
     label: string;
     description: string;
     deficit: number;
+    proteinPerKg: number;
     icon: string;
     accent: string;
   }
 > = {
   weight_loss: {
     label: "Perte de poids",
-    description: "Déficit progressif pour sécher",
-    deficit: -0.2,
+    description: "Déficit progressif, haute protéine pour préserver le muscle",
+    deficit: GOAL_CALORIE_ADJUSTMENT.weight_loss,
+    proteinPerKg: PROTEIN_G_PER_KG.weight_loss,
     icon: "🔥",
     accent: "secondary",
   },
   recomposition: {
     label: "Recomposition",
-    description: "Perdre du gras et gagner du muscle",
-    deficit: -0.1,
+    description: "Perdre du gras et gagner du muscle simultanément",
+    deficit: GOAL_CALORIE_ADJUSTMENT.recomposition,
+    proteinPerKg: PROTEIN_G_PER_KG.recomposition,
     icon: "⚖️",
     accent: "info",
   },
   maintenance: {
     label: "Maintien",
-    description: "Stabiliser performance et énergie",
-    deficit: 0,
+    description: "Stabiliser poids, performance et énergie",
+    deficit: GOAL_CALORIE_ADJUSTMENT.maintenance,
+    proteinPerKg: PROTEIN_G_PER_KG.maintenance,
     icon: "🎯",
     accent: "text",
   },
   muscle_gain: {
     label: "Prise de muscle",
-    description: "Surplus contrôlé orienté volume",
-    deficit: 0.1,
+    description: "Surplus contrôlé pour maximiser la synthèse protéique",
+    deficit: GOAL_CALORIE_ADJUSTMENT.muscle_gain,
+    proteinPerKg: PROTEIN_G_PER_KG.muscle_gain,
     icon: "💪",
     accent: "primary",
   },
   performance: {
     label: "Performance",
-    description: "Maximiser force et récupération",
-    deficit: 0.15,
+    description: "Maximiser force, récupération et composition",
+    deficit: GOAL_CALORIE_ADJUSTMENT.performance,
+    proteinPerKg: PROTEIN_G_PER_KG.performance,
     icon: "⚡",
     accent: "warning",
   },
 };
-
-export const PROTEIN_PER_KG = 2;
-export const FAT_KCAL_RATIO = 0.25;

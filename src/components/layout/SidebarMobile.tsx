@@ -60,7 +60,7 @@ export function SidebarMobile() {
                     : "text-text-soft hover:bg-surface-2 hover:text-text",
                 )}
               >
-                <Icon className="h-[22px] w-[22px] shrink-0" aria-hidden />
+                <Icon className="size-5.5 shrink-0" aria-hidden />
                 {link.label}
               </Link>
             );

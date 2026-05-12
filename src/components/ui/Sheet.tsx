@@ -45,7 +45,7 @@ export function Sheet({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/55 backdrop-blur-xs"
             onClick={() => onOpenChange(false)}
           />
           <motion.aside
@@ -54,7 +54,7 @@ export function Sheet({
             exit={{ x }}
             transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
             className={cn(
-              "absolute top-0 h-full w-[min(100vw-2rem,20rem)] border-outline-variant bg-surface md-elevation-3",
+              "absolute top-0 h-full w-full max-w-80 border-outline-variant bg-surface md-elevation-3",
               hideHeader ? "flex flex-col overflow-hidden p-0" : "overflow-y-auto p-5",
               side === "left" ? "left-0 rounded-r-3xl border-r" : "right-0 rounded-l-3xl border-l",
               className,

@@ -2,7 +2,7 @@
 
 import type React from "react";
 import Link from "next/link";
-import { Plus, Sparkles, Zap } from "lucide-react";
+import { Flame, Plus, Sparkles, Zap } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
@@ -10,17 +10,36 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressRing } from "@/components/shared/ProgressRing";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { InsightsFeed } from "@/features/dashboard/InsightsFeed";
 import { useToday } from "@/hooks/useToday";
 import { useSleep, useSteps, useLatestWeight } from "@/hooks/useDaily";
+import { useStreaks } from "@/hooks/useStreaks";
 import { ROUTES } from "@/constants/routes";
 import { formatDateRelative, todayISO } from "@/utils/dates";
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/services/supabase/client";
+import { useUser } from "@/hooks/useUser";
+import { getWeightHistory } from "@/services/supabase/queries/stats";
 
 export default function DashboardPage() {
   const { profile, totals, targets, sessions, isLoading } = useToday();
+  const { data: user } = useUser();
   const today = todayISO();
   const sleepQuery = useSleep(today);
   const stepsQuery = useSteps(today);
   const latestWeightQuery = useLatestWeight();
+  const streaksQuery = useStreaks();
+
+  const weightHistoryQuery = useQuery({
+    queryKey: ["weight-history-trend", user?.id],
+    enabled: Boolean(user?.id),
+    staleTime: 30 * 60 * 1000,
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const supabase = createClient();
+      return getWeightHistory(supabase, user.id);
+    },
+  });
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -31,6 +50,15 @@ export default function DashboardPage() {
   const todaySleep = sleepQuery.data;
   const todaySteps = stepsQuery.data;
   const latestWeight = latestWeightQuery.data;
+  const streaks = streaksQuery.data;
+  const sessionsThisWeek = sessions.filter((s) => s.status === "completed").length;
+
+  // Weight trend over 30 days
+  const weightTrend = (() => {
+    const wh = weightHistoryQuery.data ?? [];
+    if (wh.length < 2) return null;
+    return Math.round((wh[wh.length - 1]!.weight - wh[0]!.weight) * 10) / 10;
+  })();
 
   return (
     <div className="space-y-6">
@@ -217,6 +245,47 @@ export default function DashboardPage() {
           </Link>
         </Card>
       </div>
+
+      {/* Streaks row */}
+      {(streaks?.food_log_current ?? 0) > 0 || (streaks?.workout_current ?? 0) > 0 ? (
+        <div className="flex flex-wrap gap-3">
+          {(streaks?.food_log_current ?? 0) > 0 ? (
+            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-4 py-2">
+              <Flame className="h-4 w-4 text-orange-500" />
+              <span className="text-sm font-semibold text-text">
+                {streaks!.food_log_current}j
+              </span>
+              <span className="text-xs text-text-soft">log repas</span>
+            </div>
+          ) : null}
+          {(streaks?.workout_current ?? 0) > 0 ? (
+            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-4 py-2">
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold text-text">
+                {streaks!.workout_current}j
+              </span>
+              <span className="text-xs text-text-soft">séances</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* AI Insights */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Insights du jour</CardTitle>
+        </CardHeader>
+        <InsightsFeed
+          totals={totals}
+          targets={targets}
+          sessionsThisWeek={sessionsThisWeek}
+          sleepHours={todaySleep?.hours ?? null}
+          steps={todaySteps?.steps ?? null}
+          weightTrend={weightTrend}
+          streakFood={streaks?.food_log_current ?? 0}
+          streakWorkout={streaks?.workout_current ?? 0}
+        />
+      </Card>
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2">

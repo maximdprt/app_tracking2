@@ -34,7 +34,7 @@ export function Sidebar({ email }: SidebarProps) {
 
   return (
     <aside className="hidden h-screen w-72 shrink-0 flex-col border-r border-border bg-surface md-elevation-1 lg:sticky lg:top-0 lg:flex">
-      <div className="flex h-[4.5rem] items-center px-5">
+      <div className="flex h-18 items-center px-5">
         <Link
           href={ROUTES.dashboard}
           className="group flex items-center gap-3 rounded-full py-1 pr-3 transition-colors hover:bg-surface-2"
@@ -74,12 +74,12 @@ export function Sidebar({ email }: SidebarProps) {
               ) : null}
               <Icon
                 className={cn(
-                  "relative z-[1] h-[22px] w-[22px] shrink-0",
+                  "relative z-1 size-5.5 shrink-0",
                   active ? "text-on-primary-container" : "",
                 )}
                 aria-hidden
               />
-              <span className="relative z-[1] md-label-large">{link.label}</span>
+              <span className="relative z-1 md-label-large">{link.label}</span>
             </Link>
           );
         })}
@@ -95,7 +95,7 @@ export function Sidebar({ email }: SidebarProps) {
               : "text-text-soft hover:bg-surface-2 hover:text-text",
           )}
         >
-          <Settings2 className="h-[22px] w-[22px] shrink-0" aria-hidden />
+          <Settings2 className="size-5.5 shrink-0" aria-hidden />
           <span className="md-label-large">Profil</span>
         </Link>
         <UserMenu email={email} />

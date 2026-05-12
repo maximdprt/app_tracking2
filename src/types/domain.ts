@@ -40,6 +40,8 @@ export interface MacroResult {
   protein: number;
   carbs: number;
   fats: number;
+  /** Fibres recommandées : 14g / 1000 kcal (IOM 2005). */
+  fiber: number;
 }
 
 export interface MealWithIngredients extends Meal {

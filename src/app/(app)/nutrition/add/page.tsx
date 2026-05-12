@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, X, Plus, ChevronLeft, Camera } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Search, X, Plus, ChevronLeft, Camera, Heart, Clock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -15,42 +15,40 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { MacroBar } from "@/components/shared/MacroBar";
 import { PhotoAnalyzer } from "@/features/nutrition/PhotoAnalyzer";
-import { useDebounce } from "@/hooks/useDebounce";
+import { CreateCustomFoodModal } from "@/features/nutrition/CreateCustomFoodModal";
 import { useDateStore } from "@/stores/useDateStore";
 import { createClient } from "@/services/supabase/client";
-import { searchFoods } from "@/services/supabase/queries/foods";
 import { createMealWithIngredients } from "@/services/supabase/queries/meals";
 import { MEAL_TYPES } from "@/constants/meal-types";
 import { ROUTES } from "@/constants/routes";
 import { toUserMessage } from "@/lib/errors";
 import { macrosFromGrams, per100gMacrosFromFoodItem } from "@/utils/nutrition";
+import { useFoodSearch, useRecentFoods } from "@/hooks/useFoodSearch";
+import { useFoodFavorites } from "@/hooks/useFoodFavorites";
+import { useUser } from "@/hooks/useUser";
 import type { CartItem, FoodItem, MealType } from "@/types/domain";
 
 type InputMode = "search" | "photo";
+type SearchTab = "search" | "recents" | "favorites";
 
 export default function AddMealPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: user } = useUser();
   const selectedDate = useDateStore((s) => s.selectedDate);
 
   const [inputMode, setInputMode] = useState<InputMode>("search");
   const [mealType, setMealType] = useState<MealType>("lunch");
   const [query, setQuery] = useState("");
+  const [searchTab, setSearchTab] = useState<SearchTab>("search");
   const [pendingFood, setPendingFood] = useState<FoodItem | null>(null);
   const [pendingGrams, setPendingGrams] = useState(100);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [createCustomOpen, setCreateCustomOpen] = useState(false);
 
-  const debouncedQuery = useDebounce(query, 300);
-
-  const foodsQuery = useQuery({
-    queryKey: ["foods", debouncedQuery],
-    enabled: debouncedQuery.trim().length >= 2,
-    staleTime: 60 * 60 * 1000,
-    queryFn: async () => {
-      const supabase = createClient();
-      return searchFoods(supabase, debouncedQuery, 10);
-    },
-  });
+  const foodsQuery = useFoodSearch(query);
+  const recentsQuery = useRecentFoods(8);
+  const { favorites, favoriteIds, toggle: toggleFav } = useFoodFavorites();
 
   const totals = useMemo(
     () =>
@@ -78,6 +76,11 @@ export default function AddMealPage() {
     ? macrosFromGrams(pendingGrams, per100gMacrosFromFoodItem(pendingFood))
     : null;
 
+  function selectFood(food: FoodItem) {
+    setPendingFood(food);
+    setPendingGrams(100);
+  }
+
   function addToCart() {
     if (!pendingFood) return;
     const per100 = per100gMacrosFromFoodItem(pendingFood);
@@ -86,7 +89,7 @@ export default function AddMealPage() {
       {
         id: crypto.randomUUID(),
         name: pendingFood.name ?? pendingFood.nom ?? "Aliment",
-        foodItemId: pendingFood.id,
+        foodItemId: pendingFood.id.startsWith("custom_") ? null : pendingFood.id,
         grams: pendingGrams,
         caloriesPer100g: per100.calories,
         proteinPer100g: per100.protein,
@@ -103,9 +106,9 @@ export default function AddMealPage() {
     mutationFn: async () => {
       const supabase = createClient();
       const {
-        data: { user },
+        data: { user: authUser },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error("Unauthorized");
+      if (!authUser) throw new Error("Unauthorized");
 
       const ingredients = cart.map((item) => {
         const m = macrosFromGrams(item.grams, {
@@ -115,7 +118,7 @@ export default function AddMealPage() {
           fats: item.fatsPer100g,
         });
         return {
-          user_id: user.id,
+          user_id: authUser.id,
           food_item_id: item.foodItemId,
           custom_food_name: item.name,
           grams: item.grams,
@@ -129,7 +132,7 @@ export default function AddMealPage() {
       await createMealWithIngredients(
         supabase,
         {
-          user_id: user.id,
+          user_id: authUser.id,
           meal_date: selectedDate,
           meal_type: mealType,
           total_calories: totals.calories,
@@ -139,14 +142,44 @@ export default function AddMealPage() {
         },
         ingredients,
       );
+
+      // Update streak for food log (upsert_streak RPC added in migration 0008)
+      if (user?.id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
+          .rpc("upsert_streak", { p_user_id: user.id, p_type: "food", p_date: selectedDate })
+          .then(() => {})
+          .catch(() => {});
+      }
     },
     onSuccess: () => {
       toast.success("Repas ajouté ✓");
       queryClient.invalidateQueries({ queryKey: ["meals"] });
+      queryClient.invalidateQueries({ queryKey: ["foods-recent"] });
       router.push(ROUTES.nutrition);
     },
     onError: (err) => toast.error(toUserMessage(err)),
   });
+
+  // Determine which list to show
+  const displayList: FoodItem[] =
+    searchTab === "recents"
+      ? (recentsQuery.data ?? [])
+      : searchTab === "favorites"
+        ? favorites
+        : (foodsQuery.data ?? []);
+
+  const isListLoading =
+    searchTab === "search"
+      ? foodsQuery.isLoading
+      : searchTab === "recents"
+        ? recentsQuery.isLoading
+        : false;
+
+  const isEmpty =
+    !isListLoading &&
+    displayList.length === 0 &&
+    (searchTab !== "search" || query.trim().length >= 2);
 
   return (
     <div className="space-y-6">
@@ -184,62 +217,141 @@ export default function AddMealPage() {
           {/* Search column */}
           <Card className="lg:col-span-7">
             <CardHeader>
-              <CardTitle>Recherche</CardTitle>
+              <CardTitle>Aliments</CardTitle>
+              <button
+                type="button"
+                onClick={() => setCreateCustomOpen(true)}
+                className="flex items-center gap-1 rounded-full border border-border px-3 py-1 text-[11px] text-text-soft transition-colors hover:border-primary hover:text-primary"
+              >
+                <Sparkles className="h-3 w-3" />
+                Créer
+              </button>
             </CardHeader>
 
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="ex: poulet, riz, pomme..."
-                className="pl-10"
-                autoFocus
-              />
+            {/* Sub-tabs: Recherche / Récents / Favoris */}
+            <div className="mb-4 flex gap-1 rounded-full border border-border bg-surface-2 p-1 text-xs">
+              {(
+                [
+                  { id: "search", label: "Recherche", icon: Search },
+                  { id: "recents", label: "Récents", icon: Clock },
+                  { id: "favorites", label: "Favoris", icon: Heart },
+                ] as const
+              ).map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setSearchTab(id)}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 transition-colors ${
+                    searchTab === id
+                      ? "bg-primary text-on-primary"
+                      : "text-text-soft hover:text-text"
+                  }`}
+                >
+                  <Icon className="h-3 w-3" />
+                  {label}
+                </button>
+              ))}
             </div>
 
-            <div className="mt-4 max-h-80 space-y-1 overflow-y-auto">
-              {foodsQuery.isLoading ? (
+            {/* Search input only visible in search tab */}
+            {searchTab === "search" && (
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="ex: poulet, riz, pomme..."
+                  className="pl-10"
+                  autoFocus
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Food list */}
+            <div className="max-h-80 space-y-1 overflow-y-auto">
+              {isListLoading ? (
                 <>
                   <Skeleton className="h-12" />
                   <Skeleton className="h-12" />
                   <Skeleton className="h-12" />
                 </>
-              ) : null}
-              {foodsQuery.data?.map((food) => (
-                <button
-                  key={food.id}
-                  type="button"
-                  onClick={() => {
-                    setPendingFood(food);
-                    setPendingGrams(100);
-                  }}
-                  className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition-colors ${
-                    pendingFood?.id === food.id
-                      ? "border-primary bg-primary-soft"
-                      : "border-border bg-surface hover:border-border-strong"
-                  }`}
-                >
-                  <div>
-                    <p className="text-sm font-medium">{food.name ?? food.nom}</p>
-                    {food.category ? (
-                      <p className="text-[10px] text-muted">{food.category}</p>
-                    ) : null}
-                  </div>
-                  <p className="font-mono text-xs text-text-soft">
-                    {Math.round(per100gMacrosFromFoodItem(food).calories)} kcal/100g
-                  </p>
-                </button>
-              ))}
-              {debouncedQuery.length >= 2 && foodsQuery.data?.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted">Aucun résultat</p>
-              ) : null}
+              ) : isEmpty ? (
+                <p className="py-8 text-center text-sm text-muted">
+                  {searchTab === "search"
+                    ? query.length < 2
+                      ? "Tape 2 caractères minimum"
+                      : "Aucun résultat"
+                    : searchTab === "recents"
+                      ? "Aucun aliment récent"
+                      : "Aucun favori — ★ pour en ajouter"}
+                </p>
+              ) : (
+                displayList.map((food) => {
+                  const isFav = favoriteIds.has(food.id);
+                  const isSelected = pendingFood?.id === food.id;
+                  return (
+                    <div
+                      key={food.id}
+                      className={`group flex items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary-soft"
+                          : "border-border bg-surface hover:border-border-strong"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="flex flex-1 items-center justify-between text-left"
+                        onClick={() => selectFood(food)}
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{food.name ?? food.nom}</p>
+                          {(food as unknown as { category?: string }).category ? (
+                            <p className="text-[10px] text-muted">
+                              {(food as unknown as { category?: string }).category}
+                            </p>
+                          ) : null}
+                        </div>
+                        <p className="font-mono text-xs text-text-soft">
+                          {Math.round(per100gMacrosFromFoodItem(food).calories)} kcal/100g
+                        </p>
+                      </button>
+
+                      {/* Fav toggle */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (user?.id) toggleFav(food.id);
+                        }}
+                        className={`rounded-full p-1 transition-colors ${
+                          isFav
+                            ? "text-red-500 hover:text-red-400"
+                            : "text-muted opacity-0 hover:text-red-400 group-hover:opacity-100"
+                        }`}
+                        aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+                      >
+                        <Heart className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`} />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
+            {/* Pending food detail */}
             {pendingFood ? (
               <div className="mt-4 space-y-3 rounded-xl border border-primary/20 bg-primary-soft p-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">{pendingFood.name}</p>
+                  <p className="text-sm font-medium">{pendingFood.name ?? pendingFood.nom}</p>
                   <button
                     type="button"
                     onClick={() => setPendingFood(null)}
@@ -347,6 +459,15 @@ export default function AddMealPage() {
           </Card>
         </div>
       )}
+
+      <CreateCustomFoodModal
+        open={createCustomOpen}
+        onClose={() => setCreateCustomOpen(false)}
+        onAdded={(food) => {
+          selectFood(food);
+          setCreateCustomOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -19,9 +19,9 @@ export function CoachChatPanel() {
       }}
       side="right"
       hideHeader
-      className="w-[min(100vw,24rem)] max-w-[100vw] sm:w-[26rem]"
+      className="w-full max-w-sm sm:max-w-none sm:w-104"
     >
-      <div className="flex h-[100dvh] max-h-[100dvh] flex-col">
+      <div className="flex h-dvh max-h-dvh flex-col">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2.5 sm:px-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-container md-elevation-0">

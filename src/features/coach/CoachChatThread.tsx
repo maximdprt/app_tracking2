@@ -46,19 +46,19 @@ function MessageBubble({ message, streamingTail }: { message: ChatMessage; strea
       </div>
       <div
         className={cn(
-          "max-w-[min(100%,20rem)] rounded-[1.25rem] px-3.5 py-2.5 md-body-medium",
+          "max-w-80 rounded-2xl px-3.5 py-2.5 md-body-medium",
           isUser
             ? "rounded-br-md bg-primary-container/35 text-text"
             : "rounded-bl-md bg-surface-2 text-text-soft",
         )}
       >
         {isEmptyAssistant && streamingTail ? (
-          <p className="flex min-h-[1.25rem] items-center gap-2 text-muted">
+          <p className="flex min-h-5 items-center gap-2 text-muted">
             <TypingDots />
             <span className="sr-only">Le coach rédige…</span>
           </p>
         ) : (
-          <p className="whitespace-pre-wrap break-words leading-relaxed">
+          <p className="wrap-break-word whitespace-pre-wrap leading-relaxed">
             {message.content || (streamingTail ? "…" : "")}
           </p>
         )}
@@ -163,7 +163,7 @@ export function CoachChatThread({
 
       <div className="mt-3 shrink-0 border-t border-border pt-3">
         <div className="flex items-end gap-2">
-          <div className="relative min-h-[2.75rem] flex-1 rounded-[1.75rem] border border-outline-variant bg-surface-2 px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+          <div className="relative min-h-11 flex-1 rounded-3xl border border-outline-variant bg-surface-2 px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
             <textarea
               ref={taRef}
               value={input}
@@ -177,7 +177,7 @@ export function CoachChatThread({
               placeholder="Message…"
               disabled={streaming}
               rows={1}
-              className="max-h-32 min-h-[2.25rem] w-full resize-y bg-transparent py-1 md-body-medium text-text placeholder:text-muted focus:outline-none disabled:opacity-60"
+              className="max-h-32 min-h-9 w-full resize-y bg-transparent py-1 md-body-medium text-text placeholder:text-muted focus:outline-none disabled:opacity-60"
               aria-label="Votre message"
             />
           </div>

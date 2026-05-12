@@ -3,7 +3,24 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import type { FoodItem } from "@/types/domain";
 
+export interface CustomFood {
+  id: string;
+  user_id: string;
+  nom: string;
+  calories_100g: number;
+  proteines_100g: number;
+  glucides_100g: number;
+  lipides_100g: number;
+  sucres_100g: number;
+  fibres_100g: number;
+  sel_100g: number;
+  created_at: string;
+}
+
 type Client = SupabaseClient<Database>;
+// Tables added in migrations 0007+ not yet in generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Untyped = { from: (t: string) => any; rpc: (fn: string, args?: any) => any };
 
 /** Échappe %, _ et \ pour des motifs ILIKE corrects (sinon ils agissent comme wildcards SQL). */
 function escapeIlike(text: string): string {
@@ -166,4 +183,163 @@ export async function matchIngredientLabelsToFoodItems(
   labels: string[],
 ): Promise<(FoodItem | null)[]> {
   return Promise.all(labels.map((label) => findBestFoodMatch(client, label)));
+}
+
+// ─── RPC full-text search (migration 0007) ────────────────────────────────────
+
+/**
+ * Recherche via la RPC `search_food_items` (pg_trgm + tsvector français).
+ * Retombe sur `searchFoods` (ilike) si la fonction RPC n'existe pas encore.
+ */
+export async function searchFoodsRPC(
+  client: Client,
+  query: string,
+  limit = 20,
+): Promise<FoodItem[]> {
+  const q = safeSearchToken(query);
+  if (q.length < 2) return [];
+
+  const { data, error } = await (client as unknown as Untyped).rpc("search_food_items", {
+    query: q,
+    limit_n: limit,
+  });
+
+  if (error) {
+    // RPC pas encore appliquée → fallback silencieux
+    if (error.code === "PGRST202" || /does not exist/i.test(error.message)) {
+      return searchFoods(client, query, limit);
+    }
+    throw error;
+  }
+
+  return (data ?? []) as unknown as FoodItem[];
+}
+
+// ─── Favoris utilisateur ──────────────────────────────────────────────────────
+
+export async function getUserFavorites(
+  client: Client,
+  userId: string,
+): Promise<FoodItem[]> {
+  const { data, error } = await (client as unknown as Untyped)
+    .from("user_food_favorites")
+    .select("food_item_id, food_items(*)")
+    .eq("user_id", userId)
+    .order("added_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    if (error.code === "42P01" || /does not exist/i.test(error.message)) return [];
+    throw error;
+  }
+
+  return ((data ?? []) as unknown[])
+    .map((row) => (row as { food_items: FoodItem }).food_items)
+    .filter((fi): fi is FoodItem => Boolean(fi));
+}
+
+export async function addFavorite(
+  client: Client,
+  userId: string,
+  foodItemId: string,
+): Promise<void> {
+  const { error } = await (client as unknown as Untyped)
+    .from("user_food_favorites")
+    .upsert({ user_id: userId, food_item_id: foodItemId });
+  if (error) throw error;
+}
+
+export async function removeFavorite(
+  client: Client,
+  userId: string,
+  foodItemId: string,
+): Promise<void> {
+  const { error } = await (client as unknown as Untyped)
+    .from("user_food_favorites")
+    .delete()
+    .eq("user_id", userId)
+    .eq("food_item_id", foodItemId);
+  if (error) throw error;
+}
+
+// ─── Aliments récents ─────────────────────────────────────────────────────────
+
+export async function getRecentFoodItems(
+  client: Client,
+  userId: string,
+  limit = 10,
+): Promise<FoodItem[]> {
+  const { data, error } = await client
+    .from("meal_ingredients")
+    .select("food_item_id, created_at, food_items(*)")
+    .eq("user_id", userId)
+    .not("food_item_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(limit * 3);
+
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+
+  const seen = new Set<string>();
+  const out: FoodItem[] = [];
+  for (const row of data ?? []) {
+    const fi = (row as unknown as { food_items: FoodItem }).food_items;
+    if (!fi || seen.has(fi.id)) continue;
+    seen.add(fi.id);
+    out.push(fi);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+// ─── Aliments personnalisés ───────────────────────────────────────────────────
+
+export async function getUserCustomFoods(
+  client: Client,
+  userId: string,
+): Promise<CustomFood[]> {
+  const { data, error } = await (client as unknown as Untyped)
+    .from("user_custom_foods")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (error.code === "42P01" || /does not exist/i.test(error.message)) return [];
+    throw error;
+  }
+
+  return (data ?? []) as unknown as CustomFood[];
+}
+
+export async function createCustomFood(
+  client: Client,
+  food: Omit<CustomFood, "id" | "created_at">,
+): Promise<CustomFood> {
+  const { data, error } = await (client as unknown as Untyped)
+    .from("user_custom_foods")
+    .insert(food)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as CustomFood;
+}
+
+/** Convertit un CustomFood en pseudo-FoodItem utilisable dans le panier. */
+export function customFoodToFoodItem(cf: CustomFood): FoodItem {
+  return {
+    id: `custom_${cf.id}`,
+    nom: cf.nom,
+    name: cf.nom,
+    calories_100g: cf.calories_100g,
+    proteines_100g: cf.proteines_100g,
+    glucides_100g: cf.glucides_100g,
+    lipides_100g: cf.lipides_100g,
+    sucres_100g: cf.sucres_100g,
+    fibres_100g: cf.fibres_100g,
+    sel_100g: cf.sel_100g,
+    source: "USER_CUSTOM",
+  } as unknown as FoodItem;
 }
