@@ -38,7 +38,7 @@ export default function TrainingPage() {
 
   if (sessionsQuery.isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-10">
         <PageHeader title="Entraînement" />
         <div className="grid gap-3 md:grid-cols-3">
           <Skeleton className="h-28" />
@@ -51,14 +51,14 @@ export default function TrainingPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <PageHeader
         title="Entraînement"
         subtitle="Logging, programmes, progression"
         actions={
           <Link href={ROUTES.trainingStart}>
             <Button>
-              <Zap className="h-4 w-4" />
+              <Zap className="h-4 w-4 stroke-[1.5]" />
               Démarrer une séance
             </Button>
           </Link>
@@ -80,7 +80,7 @@ export default function TrainingPage() {
         </Link>
       </div>
 
-      <h2 className="text-lg font-semibold tracking-tight">Séances récentes</h2>
+      <h2 className="lift-title-lg text-text">Séances récentes</h2>
 
       {sessions.length === 0 ? (
         <EmptyState
@@ -90,7 +90,7 @@ export default function TrainingPage() {
           action={
             <Link href={ROUTES.trainingStart}>
               <Button>
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 stroke-[1.5]" />
                 Démarrer
               </Button>
             </Link>
@@ -102,8 +102,8 @@ export default function TrainingPage() {
             <Link key={s.id} href={`${ROUTES.training}/${s.id}`}>
               <Card className="flex h-full cursor-pointer items-center justify-between hover:border-border-strong">
                 <div>
-                  <p className="text-sm font-medium">{s.workout_name ?? "Séance libre"}</p>
-                  <p className="text-xs text-text-soft capitalize">
+                  <p className="lift-body-sm font-medium text-text">{s.workout_name ?? "Séance libre"}</p>
+                  <p className="lift-body-sm text-text-soft capitalize">
                     {formatDateRelative(s.session_date)}
                     {s.duration_minutes ? ` · ${formatDuration(s.duration_minutes)}` : ""}
                   </p>

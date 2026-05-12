@@ -40,12 +40,16 @@ const PERIODS: { value: Period; label: string }[] = [
 ];
 
 const TOOLTIP_STYLE = {
-  background: "#16181B",
-  border: "1px solid rgba(255,255,255,0.12)",
+  background: "var(--lift-bg-inverse)",
+  border: "1px solid var(--lift-border-default)",
   borderRadius: "12px",
-  color: "#F5F5F5",
+  color: "var(--lift-text-inverse)",
   fontSize: "12px",
 };
+
+const CHART_GRID = "rgba(26,26,26,0.07)";
+const CHART_LINE = "#1A1A1A";
+const CHART_TICK = "var(--lift-text-tertiary)";
 
 export default function StatsPage() {
   const { data: user } = useUser();
@@ -94,7 +98,7 @@ export default function StatsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <PageHeader
         title="Statistiques"
         subtitle="Vue d'ensemble de ta progression"
@@ -115,20 +119,20 @@ export default function StatsPage() {
           ) : weightQuery.data && weightQuery.data.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={weightQuery.data}>
-                <CartesianGrid stroke="rgba(255,255,255,0.04)" />
+                <CartesianGrid stroke={CHART_GRID} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "#6E6E76", fontSize: 11 }}
+                  tick={{ fill: CHART_TICK, fontSize: 11 }}
                   tickFormatter={(v: string) => format(parseISO(v), "d MMM", { locale: fr })}
                 />
-                <YAxis tick={{ fill: "#6E6E76", fontSize: 11 }} domain={["auto", "auto"]} />
+                <YAxis tick={{ fill: CHART_TICK, fontSize: 11 }} domain={["auto", "auto"]} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
                 <Line
                   type="monotone"
                   dataKey="weight"
-                  stroke="#A3E635"
-                  strokeWidth={2}
-                  dot={{ fill: "#A3E635", r: 3 }}
+                  stroke={CHART_LINE}
+                  strokeWidth={1.5}
+                  dot={{ fill: CHART_LINE, r: 3 }}
                   activeDot={{ r: 5 }}
                 />
               </LineChart>
@@ -151,15 +155,15 @@ export default function StatsPage() {
           ) : volumeQuery.data && volumeQuery.data.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={volumeQuery.data}>
-                <CartesianGrid stroke="rgba(255,255,255,0.04)" />
+                <CartesianGrid stroke={CHART_GRID} />
                 <XAxis
                   dataKey="week"
-                  tick={{ fill: "#6E6E76", fontSize: 11 }}
+                  tick={{ fill: CHART_TICK, fontSize: 11 }}
                   tickFormatter={(v: string) => format(parseISO(v), "d MMM", { locale: fr })}
                 />
-                <YAxis tick={{ fill: "#6E6E76", fontSize: 11 }} />
+                <YAxis tick={{ fill: CHART_TICK, fontSize: 11 }} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
-                <Bar dataKey="volume" fill="#A3E635" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="volume" fill={CHART_LINE} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -181,25 +185,25 @@ export default function StatsPage() {
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={caloriesQuery.data}>
                 <defs>
-                  <linearGradient id="caloriesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#A3E635" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#A3E635" stopOpacity={0} />
+                  <linearGradient id="statsCaloriesGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={CHART_LINE} stopOpacity={0.22} />
+                    <stop offset="100%" stopColor={CHART_LINE} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="rgba(255,255,255,0.04)" />
+                <CartesianGrid stroke={CHART_GRID} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "#6E6E76", fontSize: 11 }}
+                  tick={{ fill: CHART_TICK, fontSize: 11 }}
                   tickFormatter={(v: string) => format(parseISO(v), "d MMM", { locale: fr })}
                 />
-                <YAxis tick={{ fill: "#6E6E76", fontSize: 11 }} />
+                <YAxis tick={{ fill: CHART_TICK, fontSize: 11 }} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
                 <Area
                   type="monotone"
                   dataKey="calories"
-                  stroke="#A3E635"
-                  strokeWidth={2}
-                  fill="url(#caloriesGrad)"
+                  stroke={CHART_LINE}
+                  strokeWidth={1.5}
+                  fill="url(#statsCaloriesGrad)"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -231,7 +235,7 @@ export default function StatsPage() {
 
 function ChartEmpty({ label }: { label: string }) {
   return (
-    <div className="grid h-60 place-items-center text-sm text-muted">
+    <div className="grid h-60 place-items-center lift-body-sm text-muted">
       <p>{label}</p>
     </div>
   );
@@ -251,9 +255,9 @@ function FrequencyHeatmap({ data, days }: { data: { date: string; count: number 
 
   function intensity(c: number) {
     if (c === 0) return "bg-surface-2";
-    if (c === 1) return "bg-primary/30";
-    if (c === 2) return "bg-primary/60";
-    return "bg-primary";
+    if (c === 1) return "bg-[color-mix(in_srgb,var(--lift-text-primary)_12%,var(--lift-bg-card))]";
+    if (c === 2) return "bg-[color-mix(in_srgb,var(--lift-text-primary)_24%,var(--lift-bg-card))]";
+    return "bg-[color-mix(in_srgb,var(--lift-text-primary)_40%,var(--lift-bg-card))]";
   }
 
   return (
@@ -267,13 +271,13 @@ function FrequencyHeatmap({ data, days }: { data: { date: string; count: number 
           />
         ))}
       </div>
-      <div className="flex items-center justify-end gap-2 text-[10px] text-muted">
+      <div className="flex items-center justify-end gap-2 lift-body-sm text-muted">
         <span>Moins</span>
         <div className="flex gap-0.5">
           <div className="h-2 w-2 rounded-sm bg-surface-2" />
-          <div className="h-2 w-2 rounded-sm bg-primary/30" />
-          <div className="h-2 w-2 rounded-sm bg-primary/60" />
-          <div className="h-2 w-2 rounded-sm bg-primary" />
+          <div className="h-2 w-2 rounded-sm bg-[color-mix(in_srgb,var(--lift-text-primary)_12%,var(--lift-bg-card))]" />
+          <div className="h-2 w-2 rounded-sm bg-[color-mix(in_srgb,var(--lift-text-primary)_24%,var(--lift-bg-card))]" />
+          <div className="h-2 w-2 rounded-sm bg-[color-mix(in_srgb,var(--lift-text-primary)_40%,var(--lift-bg-card))]" />
         </div>
         <span>Plus</span>
       </div>

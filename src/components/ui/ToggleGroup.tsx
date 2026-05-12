@@ -54,7 +54,7 @@ export function ToggleGroup<T extends string>({
               "rounded-xl border text-left transition-all",
               SIZES[size],
               active
-                ? "border-primary bg-primary-soft text-text shadow-[inset_0_0_0_1px_rgba(163,230,53,0.3)]"
+                ? "border-primary bg-primary-soft text-text shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--lift-text-primary)_18%,transparent)]"
                 : "border-border bg-surface-2 text-text-soft hover:border-border-strong hover:text-text",
             )}
           >

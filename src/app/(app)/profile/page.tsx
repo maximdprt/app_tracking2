@@ -178,7 +178,7 @@ export default function ProfilePage() {
 
   if (!values) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-10">
         <PageHeader title="Profil" />
         <Skeleton className="h-32" />
         <Skeleton className="h-64" />
@@ -187,7 +187,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <PageHeader title="Profil" subtitle="Édite tes infos et objectifs." />
 
       {/* Identity */}
@@ -195,8 +195,8 @@ export default function ProfilePage() {
         <div className="flex items-center gap-4">
           <Avatar fallback={user?.email?.[0] ?? "?"} size="lg" />
           <div>
-            <p className="text-sm font-medium">{user?.email ?? "Utilisateur"}</p>
-            <p className="text-xs text-muted">Compte créé via Supabase</p>
+            <p className="lift-body-sm font-medium text-text">{user?.email ?? "Utilisateur"}</p>
+            <p className="lift-body-sm text-muted">Compte créé via Supabase</p>
           </div>
         </div>
       </Card>
@@ -318,7 +318,7 @@ export default function ProfilePage() {
 
       {/* Macros recap */}
       {macros ? (
-        <Card className="bg-[radial-gradient(circle_at_30%_20%,rgba(163,230,53,0.06)_0%,transparent_60%)]">
+        <Card className="bg-[radial-gradient(circle_at_30%_20%,color-mix(in_srgb,var(--lift-text-primary)_6%,transparent)_0%,transparent_60%)]">
           <CardHeader>
             <div>
               <CardTitle>Objectifs calculés</CardTitle>
@@ -330,11 +330,11 @@ export default function ProfilePage() {
 
           <div className="grid gap-4 md:grid-cols-4">
             <div className="text-center">
-              <p className="text-xs text-muted">Calories</p>
-              <p className="font-mono text-3xl font-semibold">
+              <p className="lift-body-sm text-muted">Calories</p>
+              <p className="lift-display-md text-text tracking-tight">
                 <AnimatedNumber value={macros.targetCalories} />
               </p>
-              <p className="text-[10px] text-muted">kcal/jour</p>
+              <p className="lift-body-sm text-muted">kcal/jour</p>
             </div>
             <MacroPanel label="Protéines" value={macros.protein} color="var(--color-protein)" />
             <MacroPanel label="Glucides" value={macros.carbs} color="var(--color-carbs)" />
@@ -376,7 +376,7 @@ export default function ProfilePage() {
           </label>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={() => void downloadDataExport()}>
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 stroke-[1.5]" />
               Télécharger mes données (JSON)
             </Button>
           </div>
@@ -390,7 +390,7 @@ export default function ProfilePage() {
         </CardHeader>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={logout}>
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4 stroke-[1.5]" />
             Déconnexion
           </Button>
           <ConfirmDialog
@@ -400,7 +400,7 @@ export default function ProfilePage() {
             onConfirm={() => purgeMutation.mutate()}
             trigger={
               <Button variant="danger" loading={purgeMutation.isPending}>
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4 stroke-[1.5]" />
                 Effacer mes données Lift
               </Button>
             }
@@ -422,8 +422,8 @@ function MacroPanel({ label, value, color }: { label: string; value: number; col
         stroke={6}
         showLabel={false}
       />
-      <p className="text-xs text-muted">{label}</p>
-      <p className="font-mono text-base font-semibold">{Math.round(value)} g</p>
+      <p className="lift-body-sm text-muted">{label}</p>
+      <p className="lift-display-sm text-text">{Math.round(value)} g</p>
     </div>
   );
 }

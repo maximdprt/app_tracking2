@@ -40,17 +40,14 @@ export function BottomTabNav() {
               key={href}
               href={href}
               className={cn(
-                "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-medium transition-colors",
+                "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-2 transition-colors",
                 active
                   ? "text-[var(--lift-text-primary)]"
                   : "text-[var(--lift-text-muted)]",
               )}
             >
-              <Icon
-                className={cn("h-5 w-5", active ? "stroke-[2.25px]" : "stroke-[1.75px]")}
-                aria-hidden
-              />
-              <span className="truncate">{label}</span>
+              <Icon className="h-5 w-5 stroke-[1.5]" aria-hidden />
+              <span className="lift-body-sm max-w-full truncate font-medium">{label}</span>
             </Link>
           );
         })}
