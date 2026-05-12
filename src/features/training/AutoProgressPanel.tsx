@@ -14,11 +14,11 @@ interface Props {
 }
 
 const ICONS: Record<AutoProgressSuggestion["suggestion"], React.ReactNode> = {
-  increase_weight: <TrendingUp className="h-4 w-4 text-emerald-500" />,
-  increase_reps: <TrendingUp className="h-4 w-4 text-blue-500" />,
-  increase_sets: <ChevronRight className="h-4 w-4 text-blue-500" />,
-  deload: <TrendingDown className="h-4 w-4 text-amber-500" />,
-  maintain: <Minus className="h-4 w-4 text-text-soft" />,
+  increase_weight: <TrendingUp className="h-4 w-4 stroke-[1.5] text-emerald-500" />,
+  increase_reps: <TrendingUp className="h-4 w-4 stroke-[1.5] text-blue-500" />,
+  increase_sets: <ChevronRight className="h-4 w-4 stroke-[1.5] text-blue-500" />,
+  deload: <TrendingDown className="h-4 w-4 stroke-[1.5] text-amber-500" />,
+  maintain: <Minus className="h-4 w-4 stroke-[1.5] text-text-soft" />,
 };
 
 const BADGES: Record<
@@ -73,7 +73,7 @@ export function AutoProgressPanel({ userId, exerciseNames }: Props) {
     <Card>
       <CardHeader>
         <CardTitle>
-          <Zap className="inline h-4 w-4 text-primary" /> Suggestions de progression
+          <Zap className="inline h-4 w-4 stroke-[1.5] text-[var(--lift-text-primary)]" /> Suggestions de progression
         </CardTitle>
       </CardHeader>
 

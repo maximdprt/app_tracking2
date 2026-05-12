@@ -36,7 +36,7 @@ export default function TrainingProgressPage() {
 
   if (exercisesQuery.isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-10">
         <PageHeader title="Progressions" subtitle="Évolution par exercice" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -50,7 +50,7 @@ export default function TrainingProgressPage() {
   const exercises = exercisesQuery.data ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <PageHeader
         title="Progressions"
         subtitle="Évolution de tes performances par exercice"

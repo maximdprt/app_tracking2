@@ -122,7 +122,7 @@ export default function SessionDetailPage({ params }: PageProps) {
 
   if (sessionQuery.isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-10">
         <Skeleton className="h-12" />
         <Skeleton className="h-40" />
         <Skeleton className="h-40" />
@@ -142,7 +142,7 @@ export default function SessionDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="space-y-6 pb-32">
+    <div className="space-y-10 pb-32">
       <Link
         href={ROUTES.training}
         className="inline-flex items-center gap-1 text-xs text-text-soft hover:text-text"

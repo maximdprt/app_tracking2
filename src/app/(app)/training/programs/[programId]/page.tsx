@@ -85,7 +85,7 @@ export default function ProgramDetailPage({ params }: PageProps) {
 
   if (daysQuery.isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-10">
         <Skeleton className="h-12" />
         <Skeleton className="h-40" />
       </div>
@@ -93,7 +93,7 @@ export default function ProgramDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <Link
         href={ROUTES.trainingPrograms}
         className="inline-flex items-center gap-1 text-xs text-text-soft hover:text-text"

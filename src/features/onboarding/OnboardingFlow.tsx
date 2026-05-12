@@ -153,11 +153,11 @@ export function OnboardingFlow() {
           <span>
             Étape {step + 1} sur {TOTAL_STEPS}
           </span>
-          <span className="font-mono">{Math.round(progress)}%</span>
+          <span className="lift-num lift-body-sm text-muted">{Math.round(progress)}%</span>
         </div>
         <div className="h-1 w-full overflow-hidden rounded-full bg-surface-2">
           <motion.div
-            className="h-full bg-primary"
+            className="h-full bg-[var(--lift-text-primary)]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.4, ease: "easeOut" }}

@@ -44,7 +44,7 @@ export default function CoachPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <PageHeader
         title="Coach IA"
         subtitle="Synthèse intelligente et conseils personnalisés"
@@ -59,11 +59,11 @@ export default function CoachPage() {
 
       <div className="grid gap-4 lg:grid-cols-12">
         {/* Daily summary */}
-        <Card className="lg:col-span-5 bg-[radial-gradient(circle_at_30%_20%,rgba(163,230,53,0.06)_0%,transparent_60%)]">
+        <Card className="lg:col-span-5 bg-[radial-gradient(circle_at_30%_20%,color-mix(in_srgb,var(--lift-text-primary)_6%,transparent)_0%,transparent_60%)]">
           <CardHeader>
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
+                <Sparkles className="h-4 w-4 stroke-[1.5] text-[var(--lift-text-primary)]" />
                 Résumé du jour
               </CardTitle>
               <CardDescription>Synthèse de ta journée actuelle.</CardDescription>
@@ -78,7 +78,7 @@ export default function CoachPage() {
             </div>
           ) : summaryQuery.data?.global_summary ? (
             <div className="space-y-4">
-              <p className="whitespace-pre-line text-sm leading-relaxed text-text-soft">
+              <p className="whitespace-pre-line lift-body-sm leading-relaxed text-text-soft">
                 {summaryQuery.data.global_summary}
               </p>
               <Button
@@ -87,18 +87,18 @@ export default function CoachPage() {
                 onClick={() => generateMutation.mutate()}
                 loading={generateMutation.isPending}
               >
-                <RefreshCw className="h-3.5 w-3.5" />
+                <RefreshCw className="h-3.5 w-3.5 stroke-[1.5]" />
                 Régénérer
               </Button>
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-muted">Pas encore de résumé pour aujourd'hui.</p>
+              <p className="lift-body-sm text-muted">Pas encore de résumé pour aujourd'hui.</p>
               <Button
                 onClick={() => generateMutation.mutate()}
                 loading={generateMutation.isPending}
               >
-                <Sparkles className="h-4 w-4" />
+                <Sparkles className="h-4 w-4 stroke-[1.5]" />
                 Générer mon résumé
               </Button>
             </div>
@@ -109,7 +109,7 @@ export default function CoachPage() {
         <Card className="flex min-h-112 flex-col lg:col-span-7 lg:min-h-128">
           <CardHeader className="shrink-0">
             <CardTitle className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-primary" />
+              <Bot className="h-4 w-4 stroke-[1.5] text-[var(--lift-text-primary)]" />
               Conversation
             </CardTitle>
             <CardDescription>Même historique que le coach accessible depuis le bouton flottant.</CardDescription>

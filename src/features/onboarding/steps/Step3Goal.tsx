@@ -22,7 +22,7 @@ const GOAL_OPTIONS = (
 
 export function Step3Goal({ values, update }: Props) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Quel est ton objectif ?</h2>
         <p className="mt-1 text-sm text-text-soft">

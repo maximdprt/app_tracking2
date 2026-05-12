@@ -12,7 +12,7 @@ interface Props {
 
 export function Step1Personal({ values, update }: Props) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Faisons connaissance</h2>
         <p className="mt-1 text-sm text-text-soft">Ces infos servent à calculer tes besoins.</p>

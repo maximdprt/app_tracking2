@@ -183,7 +183,7 @@ export default function DashboardPage() {
               <div className="flex gap-4 text-sm">
                 {todaySession.duration_minutes ? (
                   <span className="text-text-soft">
-                    <span className="font-mono text-text">{todaySession.duration_minutes}</span> min
+                    <span className="lift-num text-text">{todaySession.duration_minutes}</span> min
                   </span>
                 ) : null}
               </div>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* AI summary */}
-        <Card className="lg:col-span-5 bg-[radial-gradient(circle_at_30%_20%,rgba(163,230,53,0.08)_0%,transparent_50%)]">
+        <Card className="lg:col-span-5 bg-[radial-gradient(circle_at_30%_20%,color-mix(in_srgb,var(--lift-text-primary)_7%,transparent)_0%,transparent_50%)]">
           <CardHeader>
             <CardTitle>Aperçu IA</CardTitle>
             <CardDescription>Synthèse motivante de ta journée.</CardDescription>
@@ -230,19 +230,19 @@ export default function DashboardPage() {
           {(streaks?.food_log_current ?? 0) > 0 ? (
             <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-4 py-2">
               <Flame className="h-4 w-4 stroke-[1.5] text-orange-500" />
-              <span className="text-sm font-semibold text-text">
+              <span className="lift-body-sm font-semibold text-text">
                 {streaks!.food_log_current}j
               </span>
-              <span className="text-xs text-text-soft">log repas</span>
+              <span className="lift-body-sm text-text-soft">log repas</span>
             </div>
           ) : null}
           {(streaks?.workout_current ?? 0) > 0 ? (
             <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-4 py-2">
               <Zap className="h-4 w-4 stroke-[1.5] text-primary" />
-              <span className="text-sm font-semibold text-text">
+              <span className="lift-body-sm font-semibold text-text">
                 {streaks!.workout_current}j
               </span>
-              <span className="text-xs text-text-soft">séances</span>
+              <span className="lift-body-sm text-text-soft">séances</span>
             </div>
           ) : null}
         </div>

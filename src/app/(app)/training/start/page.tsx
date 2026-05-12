@@ -54,7 +54,7 @@ export default function TrainingStartPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <Link
         href={ROUTES.training}
         className="inline-flex items-center gap-1 text-xs text-text-soft hover:text-text"

@@ -161,7 +161,7 @@ export default function HabitsMatrixPage() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6 pb-28">
+    <div className="space-y-10 pb-28">
       <Link
         href={ROUTES.habits}
         className="inline-flex items-center gap-1 text-xs text-muted hover:text-text"

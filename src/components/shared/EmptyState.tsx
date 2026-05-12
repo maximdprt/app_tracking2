@@ -18,11 +18,11 @@ export function EmptyState({ icon: Icon, title, description, action, className }
         className,
       )}
     >
-      <div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-[radial-gradient(circle,rgba(163,230,53,0.15)_0%,transparent_70%)]">
-        <Icon className="h-6 w-6 text-primary" />
+      <div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--lift-text-primary)_14%,transparent)_0%,transparent_70%)]">
+        <Icon className="h-6 w-6 stroke-[1.5] text-[var(--lift-text-primary)]" />
       </div>
-      <h3 className="text-base font-semibold tracking-tight text-text">{title}</h3>
-      {description ? <p className="mt-1 max-w-sm text-sm text-text-soft">{description}</p> : null}
+      <h3 className="lift-title-md text-text">{title}</h3>
+      {description ? <p className="mt-1 max-w-sm lift-body-sm text-text-soft">{description}</p> : null}
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );

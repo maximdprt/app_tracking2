@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-2">
-      <section className="hidden border-r border-border bg-[radial-gradient(circle_at_30%_20%,rgba(163,230,53,0.12)_0%,transparent_50%)] p-12 lg:flex lg:flex-col lg:justify-between">
+      <section className="hidden border-r border-border bg-[radial-gradient(circle_at_30%_20%,color-mix(in_srgb,var(--lift-text-primary)_10%,transparent)_0%,transparent_55%)] p-12 lg:flex lg:flex-col lg:justify-between">
         <Link href="/" className="text-xl font-semibold tracking-tight">
           <span className="mr-2 inline-grid h-7 w-7 place-items-center rounded-lg bg-primary text-black">
             L
@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <h1 className="max-w-xl text-5xl font-semibold leading-tight tracking-tight">
             Discipline.
             <br />
-            <span className="bg-gradient-to-br from-primary to-primary/40 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-br from-[var(--lift-text-primary)] to-[color-mix(in_srgb,var(--lift-text-primary)_45%,var(--lift-bg-background))] bg-clip-text text-transparent">
               Performance.
             </span>
             <br />

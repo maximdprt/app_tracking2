@@ -28,24 +28,24 @@ export function WeeklyCompareCard() {
           </CardDescription>
         </div>
       </CardHeader>
-      <div className="flex flex-wrap gap-6 px-6 pb-6 text-sm">
+      <div className="flex flex-wrap gap-6 px-6 pb-6 lift-body-sm">
         <div>
-          <p className="text-[10px] uppercase tracking-wide text-muted">Kcal · cette semaine</p>
-          <p className="font-mono text-xl font-semibold">
+          <p className="lift-label-sm text-muted">Kcal · cette semaine</p>
+          <p className="lift-display-sm text-text tracking-tight">
             {Math.round(thisWeekAvg.calories)}
           </p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wide text-muted">Kcal · semaine d’avant</p>
-          <p className="font-mono text-xl font-semibold text-muted">
+          <p className="lift-label-sm text-muted">Kcal · semaine d’avant</p>
+          <p className="lift-display-sm text-muted tracking-tight">
             {Math.round(prevWeekAvg.calories)}
           </p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wide text-muted">Δ calories</p>
+          <p className="lift-label-sm text-muted">Δ calories</p>
           <p
-            className={`font-mono text-xl font-semibold ${
-              pct > 3 ? "text-[var(--lift-accent-secondary)]" : pct < -3 ? "text-[var(--lift-accent-primary)]" : ""
+            className={`lift-display-sm tracking-tight lift-num ${
+              pct > 3 ? "text-[var(--lift-accent-secondary)]" : pct < -3 ? "text-[var(--lift-accent-primary)]" : "text-text"
             }`}
           >
             {pct > 0 ? "+" : ""}
