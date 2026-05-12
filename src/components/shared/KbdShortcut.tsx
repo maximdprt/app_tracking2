@@ -1,7 +1,21 @@
-export function KbdShortcut({ shortcut }: { shortcut: string }) {
+import { cn } from "@/lib/utils";
+
+interface KbdShortcutProps {
+  keys: string[];
+  className?: string;
+}
+
+export function KbdShortcut({ keys, className }: KbdShortcutProps) {
   return (
-    <kbd className="border-border bg-surface-2 text-text-soft rounded border px-2 py-1 text-xs">
-      {shortcut}
-    </kbd>
+    <span className={cn("flex items-center gap-0.5", className)}>
+      {keys.map((k) => (
+        <kbd
+          key={k}
+          className="inline-flex h-5 min-w-[20px] items-center justify-center rounded border border-border-strong bg-surface-2 px-1 font-mono text-[10px] text-muted"
+        >
+          {k}
+        </kbd>
+      ))}
+    </span>
   );
 }

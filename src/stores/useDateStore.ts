@@ -1,14 +1,14 @@
 import { create } from "zustand";
-import { toISODate } from "@/utils/dates";
+import { todayISO } from "@/utils/dates";
 
-type DateState = {
+interface DateState {
   selectedDate: string;
-  setSelectedDate: (value: string) => void;
+  setSelectedDate: (iso: string) => void;
   setToday: () => void;
-};
+}
 
 export const useDateStore = create<DateState>((set) => ({
-  selectedDate: toISODate(new Date()),
-  setSelectedDate: (value) => set({ selectedDate: value }),
-  setToday: () => set({ selectedDate: toISODate(new Date()) }),
+  selectedDate: todayISO(),
+  setSelectedDate: (iso) => set({ selectedDate: iso }),
+  setToday: () => set({ selectedDate: todayISO() }),
 }));

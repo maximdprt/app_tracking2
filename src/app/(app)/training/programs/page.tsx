@@ -1,23 +1,71 @@
+"use client";
+
 import Link from "next/link";
+import { ChevronLeft, FolderOpen } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Card } from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ROUTES } from "@/constants/routes";
+import { createClient } from "@/services/supabase/client";
+import { getPrograms } from "@/services/supabase/queries/workouts";
+import { useUser } from "@/hooks/useUser";
+
 export default function ProgramsPage() {
-  const programs = [
-    { id: "ppl", name: "PPL 5 jours" },
-    { id: "fullbody", name: "Full Body 3 jours" },
-  ];
+  const { data: user } = useUser();
+  const programsQuery = useQuery({
+    queryKey: ["programs", user?.id ?? null],
+    enabled: Boolean(user?.id),
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const supabase = createClient();
+      return getPrograms(supabase, user.id);
+    },
+  });
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Programmes" subtitle="Templates et plans actifs" />
-      <div className="grid gap-3 md:grid-cols-2">
-        {programs.map((program) => (
-          <Link key={program.id} href={`/training/programs/${program.id}`}>
-            <Card className="hover:border-border-strong transition-all duration-200">
-              <p className="text-lg font-semibold">{program.name}</p>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      <Link
+        href={ROUTES.training}
+        className="inline-flex items-center gap-1 text-xs text-text-soft hover:text-text"
+      >
+        <ChevronLeft className="h-3 w-3" />
+        Retour
+      </Link>
+
+      <PageHeader title="Mes programmes" subtitle="Plans d'entraînement structurés." />
+
+      {programsQuery.isLoading ? (
+        <div className="grid gap-3 md:grid-cols-2">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+      ) : programsQuery.data && programsQuery.data.length > 0 ? (
+        <div className="grid gap-3 md:grid-cols-2">
+          {programsQuery.data.map((p) => (
+            <Link key={p.id} href={`${ROUTES.trainingPrograms}/${p.id}`}>
+              <Card className="h-full cursor-pointer hover:border-border-strong">
+                <CardHeader>
+                  <div>
+                    <CardTitle>{p.name}</CardTitle>
+                    {p.description ? <CardDescription>{p.description}</CardDescription> : null}
+                  </div>
+                </CardHeader>
+                <p className="text-[10px] text-muted">
+                  {p.is_active ? "Actif" : "Archivé"}
+                </p>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={FolderOpen}
+          title="Aucun programme"
+          description="Crée ton premier programme pour structurer tes semaines."
+        />
+      )}
     </div>
   );
 }

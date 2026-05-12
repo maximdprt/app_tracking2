@@ -1,55 +1,86 @@
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Database } from "@/types/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
+import type { ExerciseSet, PerformedExercise } from "@/types/domain";
 
-export type SessionExerciseRow = {
-  id: string;
-  session_id: string;
-  exercise_name: string;
-  order_index: number;
-  notes: string | null;
-};
+type Client = SupabaseClient<Database>;
+type ExerciseInsert = Database["public"]["Tables"]["performed_exercises"]["Insert"];
+type SetInsert = Database["public"]["Tables"]["exercise_sets"]["Insert"];
+type SetUpdate = Database["public"]["Tables"]["exercise_sets"]["Update"];
 
-export type ExerciseSetRow = {
-  id: string;
-  performed_exercise_id: string;
-  set_number: number;
-  weight: number | null;
-  reps: number | null;
-  rpe: number | null;
-  is_completed: boolean;
-};
+export async function addExercise(client: Client, payload: ExerciseInsert): Promise<PerformedExercise> {
+  const { data, error } = await client.from("performed_exercises").insert(payload).select("*").single();
+  if (error) throw error;
+  return data;
+}
 
-const EXERCISE_COLUMNS = "id,session_id,exercise_name,order_index,notes";
-const SET_COLUMNS = "id,performed_exercise_id,set_number,weight,reps,rpe,is_completed";
+export async function deleteExercise(client: Client, exerciseId: string): Promise<void> {
+  const { error } = await client.from("performed_exercises").delete().eq("id", exerciseId);
+  if (error) throw error;
+}
 
-export async function getSessionExercises(
-  supabase: SupabaseClient<Database>,
-  userId: string,
-  sessionId: string,
-): Promise<{ exercises: SessionExerciseRow[]; sets: ExerciseSetRow[] }> {
-  const { data: exercises, error: exercisesError } = await supabase
-    .from("performed_exercises")
-    .select(EXERCISE_COLUMNS)
-    .eq("user_id", userId)
-    .eq("session_id", sessionId)
-    .order("order_index", { ascending: true });
+export async function addSet(client: Client, payload: SetInsert): Promise<ExerciseSet> {
+  const { data, error } = await client.from("exercise_sets").insert(payload).select("*").single();
+  if (error) throw error;
+  return data;
+}
 
-  if (exercisesError) throw exercisesError;
-
-  const exerciseIds = (exercises ?? []).map((row) => row.id);
-  if (exerciseIds.length === 0)
-    return { exercises: (exercises ?? []) as SessionExerciseRow[], sets: [] };
-
-  const { data: sets, error: setsError } = await supabase
+export async function updateSet(
+  client: Client,
+  setId: string,
+  patch: SetUpdate,
+): Promise<ExerciseSet> {
+  const { data, error } = await client
     .from("exercise_sets")
-    .select(SET_COLUMNS)
-    .eq("user_id", userId)
-    .in("performed_exercise_id", exerciseIds)
-    .order("set_number", { ascending: true });
+    .update(patch)
+    .eq("id", setId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
 
-  if (setsError) throw setsError;
-  return {
-    exercises: (exercises ?? []) as SessionExerciseRow[],
-    sets: (sets ?? []) as ExerciseSetRow[],
+export async function deleteSet(client: Client, setId: string): Promise<void> {
+  const { error } = await client.from("exercise_sets").delete().eq("id", setId);
+  if (error) throw error;
+}
+
+export async function getExerciseHistory(
+  client: Client,
+  userId: string,
+  exerciseName: string,
+  limit = 10,
+): Promise<{ session_date: string; max_volume: number; max_weight: number }[]> {
+  const { data, error } = await client
+    .from("performed_exercises")
+    .select(
+      "id, session_id, exercise_name, workout_sessions!inner(session_date), exercise_sets(weight, reps)",
+    )
+    .eq("user_id", userId)
+    .eq("exercise_name", exerciseName)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  if (!data) return [];
+
+  type Row = {
+    workout_sessions: { session_date: string } | { session_date: string }[] | null;
+    exercise_sets: { weight: number | null; reps: number | null }[] | null;
   };
+
+  return (data as unknown as Row[])
+    .map((row) => {
+      const ws = Array.isArray(row.workout_sessions)
+        ? row.workout_sessions[0]
+        : row.workout_sessions;
+      const date = ws?.session_date ?? "";
+      const sets = row.exercise_sets ?? [];
+      const maxVolume = sets.reduce(
+        (acc, s) => Math.max(acc, (s.weight ?? 0) * (s.reps ?? 0)),
+        0,
+      );
+      const maxWeight = sets.reduce((acc, s) => Math.max(acc, s.weight ?? 0), 0);
+      return { session_date: date, max_volume: maxVolume, max_weight: maxWeight };
+    })
+    .filter((r) => r.session_date !== "");
 }

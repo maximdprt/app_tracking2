@@ -3,18 +3,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/services/supabase/client";
 import { getProfile } from "@/services/supabase/queries/profile";
-import { PROFILE_STALE_TIME_MS } from "@/constants/nutrition";
+import { useUser } from "@/hooks/useUser";
 
 export function useProfile() {
+  const { data: user } = useUser();
+
   return useQuery({
-    queryKey: ["profile"],
-    staleTime: PROFILE_STALE_TIME_MS,
+    queryKey: ["profile", user?.id ?? null],
+    enabled: Boolean(user?.id),
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
+      if (!user?.id) return null;
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return null;
       return getProfile(supabase, user.id);
     },
   });

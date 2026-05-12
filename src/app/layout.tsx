@@ -8,28 +8,34 @@ const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
+  variable: "--font-jetbrains",
   subsets: ["latin"],
   weight: ["400", "500", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Lift",
-  description: "Lift - discipline, performance, clarté.",
+  title: "Lift — Discipline. Performance. Clarté.",
+  description: "Ton coach fitness et nutrition intelligent.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className="dark">
-      <body
-        className={`${inter.variable} ${jetbrainsMono.variable} bg-background text-text antialiased`}
-      >
+      <body className={`${inter.variable} ${jetbrainsMono.variable}`}>
         <QueryProvider>
           {children}
-          <Toaster richColors position="bottom-right" visibleToasts={3} duration={3000} />
+          <Toaster
+            richColors
+            position="bottom-right"
+            visibleToasts={3}
+            duration={3000}
+            theme="dark"
+          />
         </QueryProvider>
       </body>
     </html>

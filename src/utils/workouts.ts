@@ -1,12 +1,27 @@
-export function calculateVolume(rows: { weight: number | null; reps: number | null }[]): number {
-  return rows.reduce((acc, row) => acc + (row.weight ?? 0) * (row.reps ?? 0), 0);
+import type { ExerciseSet } from "@/types/domain";
+
+export function setVolume(set: { weight: number | null; reps: number | null }): number {
+  if (set.weight === null || set.reps === null) return 0;
+  return set.weight * set.reps;
 }
 
-export function detectPR(current: number, previousBest: number): boolean {
-  return current > previousBest;
+export function totalVolume(sets: Pick<ExerciseSet, "weight" | "reps">[]): number {
+  return sets.reduce((acc, s) => acc + setVolume(s), 0);
 }
 
-export function formatDuration(minutes: number | null): string {
-  if (!minutes) return "0 min";
-  return `${minutes} min`;
+export function maxOneRepMax(sets: Pick<ExerciseSet, "weight" | "reps">[]): number {
+  // Epley: 1RM = w * (1 + r/30)
+  return sets.reduce((max, s) => {
+    if (s.weight === null || s.reps === null || s.reps === 0) return max;
+    const est = s.weight * (1 + s.reps / 30);
+    return est > max ? est : max;
+  }, 0);
+}
+
+export function isPR(
+  current: { weight: number | null; reps: number | null },
+  previousBest: number,
+): boolean {
+  if (current.weight === null || current.reps === null) return false;
+  return setVolume(current) > previousBest;
 }

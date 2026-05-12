@@ -1,16 +1,20 @@
 "use client";
+
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+
 export default function ErrorPage({ reset }: { error: Error; reset: () => void }) {
   return (
-    <div className="grid min-h-screen place-items-center px-6">
-      <div className="border-border bg-surface w-full max-w-md rounded-2xl border p-6 text-center">
-        <h2 className="text-2xl font-semibold">Erreur serveur</h2>
-        <p className="text-text-soft mt-2 text-sm">
-          Une erreur est survenue. Reessaie dans un instant.
+    <div className="grid min-h-screen place-items-center bg-background p-6 text-center">
+      <div className="max-w-md space-y-4">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-danger/10">
+          <AlertCircle className="h-6 w-6 text-danger" />
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight">Une erreur est survenue</h1>
+        <p className="text-sm text-text-soft">
+          Désolé, quelque chose s'est mal passé. Tu peux réessayer maintenant.
         </p>
-        <Button className="mt-4" onClick={reset}>
-          Reessayer
-        </Button>
+        <Button onClick={reset}>Réessayer</Button>
       </div>
     </div>
   );

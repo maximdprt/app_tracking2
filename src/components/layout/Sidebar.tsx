@@ -3,59 +3,89 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { BarChart3, Dumbbell, Home, Salad, Sparkles, Target } from "lucide-react";
+import {
+  BarChart3,
+  Bot,
+  Dumbbell,
+  Home,
+  Salad,
+  Settings2,
+  Sparkles,
+} from "lucide-react";
+import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/layout/UserMenu";
 
 const links = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/nutrition", label: "Nutrition", icon: Salad },
-  { href: "/training", label: "Entrainement", icon: Dumbbell },
-  { href: "/stats", label: "Statistiques", icon: BarChart3 },
-  { href: "/habits", label: "Habitudes", icon: Target },
-  { href: "/coach", label: "Coach IA", icon: Sparkles },
+  { href: ROUTES.dashboard, label: "Dashboard", icon: Home },
+  { href: ROUTES.nutrition, label: "Nutrition", icon: Salad },
+  { href: ROUTES.training, label: "Entraînement", icon: Dumbbell },
+  { href: ROUTES.stats, label: "Statistiques", icon: BarChart3 },
+  { href: ROUTES.habits, label: "Habitudes", icon: Sparkles },
+  { href: ROUTES.coach, label: "Coach IA", icon: Bot },
 ];
 
-export function Sidebar({ email }: { email: string | undefined }) {
+interface SidebarProps {
+  email: string | undefined;
+}
+
+export function Sidebar({ email }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="border-border bg-surface hidden w-[260px] flex-col border-r p-4 lg:flex">
-      <div className="mb-6 px-2">
-        <p className="text-2xl font-semibold tracking-tight">Lift</p>
+    <aside className="hidden h-screen w-[260px] shrink-0 flex-col border-r border-border bg-surface lg:sticky lg:top-0 lg:flex">
+      <div className="flex h-16 items-center px-6">
+        <Link
+          href={ROUTES.dashboard}
+          className="flex items-center gap-2 text-xl font-semibold tracking-tight"
+        >
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-black">
+            L
+          </span>
+          Lift
+        </Link>
       </div>
 
-      <nav className="space-y-1">
+      <nav className="flex-1 space-y-0.5 px-3">
         {links.map((link) => {
-          const active = pathname === link.href;
+          const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
           const Icon = link.icon;
           return (
             <Link
               key={link.href}
               href={link.href}
               className={cn(
-                "text-text-soft hover:border-border-strong hover:bg-surface-2 relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition",
-                active && "bg-surface-2 text-text",
+                "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
+                active
+                  ? "bg-surface-2 text-text"
+                  : "text-text-soft hover:bg-surface-2 hover:text-text",
               )}
             >
               {active ? (
                 <motion.span
-                  layoutId="active-sidebar"
-                  className="bg-primary absolute top-2 bottom-2 left-0 w-0.5 rounded-full"
+                  layoutId="sidebar-active"
+                  className="absolute -left-3 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
+                  transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
                 />
               ) : null}
-              <Icon className="h-4 w-4" />
-              {link.label}
+              <Icon className="h-4 w-4 shrink-0" />
+              <span>{link.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto space-y-3">
+      <div className="space-y-1 border-t border-border p-3">
         <Link
-          href="/profile"
-          className="text-text-soft hover:bg-surface-2 block rounded-xl px-3 py-2 text-sm"
+          href={ROUTES.profile}
+          className={cn(
+            "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
+            pathname === ROUTES.profile
+              ? "bg-surface-2 text-text"
+              : "text-text-soft hover:bg-surface-2 hover:text-text",
+          )}
         >
+          <Settings2 className="h-4 w-4" />
           Profil
         </Link>
         <UserMenu email={email} />

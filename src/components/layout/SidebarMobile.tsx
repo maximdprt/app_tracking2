@@ -1,44 +1,71 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { usePathname } from "next/navigation";
+import {
+  BarChart3,
+  Bot,
+  Dumbbell,
+  Home,
+  Menu,
+  Salad,
+  Settings2,
+  Sparkles,
+} from "lucide-react";
+import { ROUTES } from "@/constants/routes";
+import { cn } from "@/lib/utils";
+import { useUIStore } from "@/stores/useUIStore";
+import { Sheet } from "@/components/ui/Sheet";
 
-const links = ["/dashboard", "/nutrition", "/training", "/stats", "/habits", "/coach", "/profile"];
+const links = [
+  { href: ROUTES.dashboard, label: "Dashboard", icon: Home },
+  { href: ROUTES.nutrition, label: "Nutrition", icon: Salad },
+  { href: ROUTES.training, label: "Entraînement", icon: Dumbbell },
+  { href: ROUTES.stats, label: "Statistiques", icon: BarChart3 },
+  { href: ROUTES.habits, label: "Habitudes", icon: Sparkles },
+  { href: ROUTES.coach, label: "Coach IA", icon: Bot },
+  { href: ROUTES.profile, label: "Profil", icon: Settings2 },
+];
 
 export function SidebarMobile() {
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const open = useUIStore((s) => s.sidebarOpen);
+  const setOpen = useUIStore((s) => s.setSidebarOpen);
 
   return (
     <>
-      <Button size="icon" variant="ghost" className="lg:hidden" onClick={() => setOpen(true)}>
-        <Menu className="h-4 w-4" />
-      </Button>
-      {open ? (
-        <div className="fixed inset-0 z-50 bg-black/80 p-4 lg:hidden">
-          <div className="border-border bg-surface rounded-2xl border p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-semibold">Lift</p>
-              <Button size="icon" variant="ghost" onClick={() => setOpen(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {links.map((href) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="hover:bg-surface-2 block rounded-xl px-3 py-2 text-sm"
-                  onClick={() => setOpen(false)}
-                >
-                  {href.replace("/", "") || "dashboard"}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="rounded-lg p-2 text-text-soft hover:bg-surface-2 hover:text-text lg:hidden"
+        aria-label="Ouvrir le menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+      <Sheet open={open} onOpenChange={setOpen} side="left" title="Lift">
+        <nav className="space-y-0.5">
+          {links.map((link) => {
+            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm",
+                  active
+                    ? "bg-surface-2 text-text"
+                    : "text-text-soft hover:bg-surface-2 hover:text-text",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+      </Sheet>
     </>
   );
 }

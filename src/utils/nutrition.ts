@@ -1,58 +1,53 @@
-import { ActivityLevel, GoalType, Sex } from "@/types/domain";
-
-const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
-  sedentary: 1.2,
-  light: 1.375,
-  moderate: 1.55,
-  intense: 1.725,
-  very_intense: 1.9,
-};
-
-const GOAL_MULTIPLIERS: Record<GoalType, number> = {
-  weight_loss: 0.8,
-  recomposition: 0.9,
-  maintenance: 1,
-  muscle_gain: 1.1,
-  performance: 1.15,
-};
+import type { GoalType, MacroResult, Sex } from "@/types/domain";
+import {
+  ACTIVITY_MULTIPLIERS,
+  FAT_KCAL_RATIO,
+  GOAL_DEFINITIONS,
+  PROTEIN_PER_KG,
+} from "@/constants/nutrition";
 
 export function calculateBMR(weight: number, height: number, age: number, sex: Sex): number {
   const base = 10 * weight + 6.25 * height - 5 * age;
-  const sexDelta = sex === "male" ? 5 : -161;
-  return Math.round(base + sexDelta);
+  return Math.round(sex === "male" ? base + 5 : base - 161);
 }
 
-export function calculateActivityLevel(trainingFrequency: number): ActivityLevel {
+export function calculateActivityLevel(
+  trainingFrequency: number,
+): keyof typeof ACTIVITY_MULTIPLIERS {
   if (trainingFrequency <= 1) return "sedentary";
-  if (trainingFrequency <= 2) return "light";
-  if (trainingFrequency <= 4) return "moderate";
-  if (trainingFrequency <= 6) return "intense";
-  return "very_intense";
+  if (trainingFrequency <= 3) return "light";
+  if (trainingFrequency <= 5) return "moderate";
+  if (trainingFrequency === 6) return "intense";
+  return "veryIntense";
 }
 
-export function calculateTDEE(bmr: number, activityLevel: ActivityLevel): number {
-  return Math.round(bmr * ACTIVITY_MULTIPLIERS[activityLevel]);
+export function calculateTDEE(bmr: number, level: keyof typeof ACTIVITY_MULTIPLIERS): number {
+  return Math.round(bmr * ACTIVITY_MULTIPLIERS[level]);
 }
 
-export function calculateMacros(
-  tdee: number,
-  goalType: GoalType,
-  weightKg: number,
-): {
-  targetCalories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-} {
-  const targetCalories = Math.round(tdee * GOAL_MULTIPLIERS[goalType]);
-  const protein = Math.round(weightKg * 2);
-  const fats = Math.round((targetCalories * 0.25) / 9);
-  const carbs = Math.max(0, Math.round((targetCalories - protein * 4 - fats * 9) / 4));
+export function calculateMacros(tdee: number, goalType: GoalType, weight: number): MacroResult {
+  const definition = GOAL_DEFINITIONS[goalType] ?? GOAL_DEFINITIONS.maintenance;
+  const targetCalories = Math.round(tdee * (1 + definition.deficit));
+
+  const protein = Math.round(weight * PROTEIN_PER_KG);
+  const fats = Math.round((targetCalories * FAT_KCAL_RATIO) / 9);
+  const proteinKcal = protein * 4;
+  const fatKcal = fats * 9;
+  const carbsKcal = Math.max(0, targetCalories - proteinKcal - fatKcal);
+  const carbs = Math.round(carbsKcal / 4);
 
   return { targetCalories, protein, carbs, fats };
 }
 
-// Manual sanity checks:
-// 1) male, 80kg, 180cm, 30y => BMR around 1780
-// 2) TDEE moderate => BMR * 1.55
-// 3) weight_loss => targetCalories ~ TDEE * 0.8
+export function macrosFromGrams(
+  grams: number,
+  per100g: { calories: number; protein: number; carbs: number; fats: number },
+): { calories: number; protein: number; carbs: number; fats: number } {
+  const ratio = grams / 100;
+  return {
+    calories: per100g.calories * ratio,
+    protein: per100g.protein * ratio,
+    carbs: per100g.carbs * ratio,
+    fats: per100g.fats * ratio,
+  };
+}

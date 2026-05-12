@@ -1,24 +1,24 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { TODAY_STALE_TIME_MS } from "@/constants/nutrition";
 import { createClient } from "@/services/supabase/client";
 import { getMealsByDate } from "@/services/supabase/queries/meals";
 import { useDateStore } from "@/stores/useDateStore";
+import { useUser } from "@/hooks/useUser";
 
 export function useMeals() {
-  const selectedDate = useDateStore((state) => state.selectedDate);
+  const { data: user } = useUser();
+  const selectedDate = useDateStore((s) => s.selectedDate);
 
   return useQuery({
-    queryKey: ["meals", selectedDate],
-    staleTime: TODAY_STALE_TIME_MS,
+    queryKey: ["meals", user?.id ?? null, selectedDate],
+    enabled: Boolean(user?.id),
+    staleTime: 30_000,
     queryFn: async () => {
+      if (!user?.id) return { meals: [] };
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return { meals: [], ingredients: [] };
-      return getMealsByDate(supabase, user.id, selectedDate);
+      const meals = await getMealsByDate(supabase, user.id, selectedDate);
+      return { meals };
     },
   });
 }

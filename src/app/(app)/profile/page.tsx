@@ -1,224 +1,311 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { LogOut, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Card } from "@/components/ui/Card";
-import { Label } from "@/components/ui/Label";
-import { Input } from "@/components/ui/Input";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { Slider } from "@/components/ui/Slider";
+import { ToggleGroup } from "@/components/ui/ToggleGroup";
+import { Label } from "@/components/ui/Label";
+import { Avatar } from "@/components/ui/Avatar";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ProgressRing } from "@/components/shared/ProgressRing";
+import { AnimatedNumber } from "@/components/shared/AnimatedNumber";
+import { useUser } from "@/hooks/useUser";
+import { useProfile } from "@/hooks/useProfile";
 import { createClient } from "@/services/supabase/client";
-import { getProfile, upsertProfile } from "@/services/supabase/queries/profile";
-import { GoalType, OnboardingFormValues, Sex } from "@/types/domain";
+import { upsertProfile } from "@/services/supabase/queries/profile";
 import {
   calculateActivityLevel,
   calculateBMR,
   calculateMacros,
   calculateTDEE,
 } from "@/utils/nutrition";
+import { GOAL_DEFINITIONS } from "@/constants/nutrition";
+import { ROUTES } from "@/constants/routes";
 import { toUserMessage } from "@/lib/errors";
-
-const GOALS: { id: GoalType; label: string }[] = [
-  { id: "weight_loss", label: "Perte de poids" },
-  { id: "recomposition", label: "Recomposition" },
-  { id: "maintenance", label: "Maintien" },
-  { id: "muscle_gain", label: "Prise de muscle" },
-  { id: "performance", label: "Performance" },
-];
+import type { GoalType, OnboardingFormValues, Sex } from "@/types/domain";
 
 export default function ProfilePage() {
-  const supabase = createClient();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [values, setValues] = useState<OnboardingFormValues>({
-    sex: "male",
-    age: 26,
-    height: 175,
-    weight: 75,
-    trainingFrequency: 4,
-    averageSteps: 8000,
-    averageSleepHours: 7,
-    goalType: "maintenance",
-    goalDurationWeeks: 12,
-  });
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { data: user } = useUser();
+  const profileQuery = useProfile();
+  const profile = profileQuery.data;
+
+  const [values, setValues] = useState<OnboardingFormValues | null>(null);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
-        setUserId(user.id);
-        setEmail(user.email ?? "");
-        const profile = await getProfile(supabase, user.id);
-        if (!profile) return;
-        setValues({
-          sex: (profile.sex as Sex | null) ?? "male",
-          age: profile.age ?? 26,
-          height: profile.height ?? 175,
-          weight: profile.weight ?? 75,
-          trainingFrequency: profile.training_frequency ?? 4,
-          averageSteps: profile.average_steps ?? 8000,
-          averageSleepHours: profile.average_sleep_hours ?? 7,
-          goalType: (profile.goal_type as GoalType | null) ?? "maintenance",
-          goalDurationWeeks: profile.goal_duration_weeks ?? 12,
-        });
-      } catch (error: unknown) {
-        toast.error(toUserMessage(error));
-      } finally {
-        setLoading(false);
-      }
-    }
+    if (!profile) return;
+    setValues({
+      sex: (profile.sex as Sex | null) ?? "male",
+      age: profile.age ?? 26,
+      height: profile.height ?? 175,
+      weight: profile.weight ?? 75,
+      trainingFrequency: profile.training_frequency ?? 4,
+      averageSteps: profile.average_steps ?? 8000,
+      averageSleepHours: profile.average_sleep_hours ?? 7,
+      goalType: (profile.goal_type as GoalType | null) ?? "maintenance",
+      goalDurationWeeks: profile.goal_duration_weeks ?? 12,
+    });
+  }, [profile]);
 
-    void load();
-  }, [supabase]);
-
-  const macroResult = useMemo(() => {
+  const macros = useMemo(() => {
+    if (!values) return null;
     const bmr = calculateBMR(values.weight, values.height, values.age, values.sex);
     const tdee = calculateTDEE(bmr, calculateActivityLevel(values.trainingFrequency));
     return calculateMacros(tdee, values.goalType, values.weight);
   }, [values]);
 
-  async function saveProfile(nextValues: OnboardingFormValues, showToast = false) {
-    if (!userId) return;
-    try {
-      const bmr = calculateBMR(
-        nextValues.weight,
-        nextValues.height,
-        nextValues.age,
-        nextValues.sex,
-      );
-      const tdee = calculateTDEE(bmr, calculateActivityLevel(nextValues.trainingFrequency));
-      const macros = calculateMacros(tdee, nextValues.goalType, nextValues.weight);
+  const saveMutation = useMutation({
+    mutationFn: async (next: OnboardingFormValues) => {
+      if (!user?.id) throw new Error("Unauthorized");
+      const supabase = createClient();
+      const bmr = calculateBMR(next.weight, next.height, next.age, next.sex);
+      const tdee = calculateTDEE(bmr, calculateActivityLevel(next.trainingFrequency));
+      const m = calculateMacros(tdee, next.goalType, next.weight);
       await upsertProfile(supabase, {
-        user_id: userId,
-        sex: nextValues.sex,
-        age: nextValues.age,
-        height: nextValues.height,
-        weight: nextValues.weight,
-        training_frequency: nextValues.trainingFrequency,
-        average_steps: nextValues.averageSteps,
-        average_sleep_hours: nextValues.averageSleepHours,
-        goal_type: nextValues.goalType,
-        goal_duration_weeks: nextValues.goalDurationWeeks,
+        user_id: user.id,
+        sex: next.sex,
+        age: next.age,
+        height: next.height,
+        weight: next.weight,
+        training_frequency: next.trainingFrequency,
+        average_steps: next.averageSteps,
+        average_sleep_hours: next.averageSleepHours,
+        goal_type: next.goalType,
+        goal_duration_weeks: next.goalDurationWeeks,
         current_daily_calories: tdee,
-        target_daily_calories: macros.targetCalories,
-        target_protein: macros.protein,
-        target_carbs: macros.carbs,
-        target_fats: macros.fats,
-        experience_level: nextValues.trainingFrequency >= 5 ? "intermediate" : "beginner",
+        target_daily_calories: m.targetCalories,
+        target_protein: m.protein,
+        target_carbs: m.carbs,
+        target_fats: m.fats,
+        experience_level: next.trainingFrequency >= 5 ? "intermediate" : "beginner",
       });
-      if (showToast) toast.success("Profil mis a jour");
-    } catch (error: unknown) {
-      toast.error(toUserMessage(error));
-    }
-  }
+    },
+    onSuccess: () => {
+      toast.success("Profil mis à jour");
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (err) => toast.error(toUserMessage(err)),
+  });
 
-  function updateAndSave<K extends keyof OnboardingFormValues>(
-    key: K,
-    value: OnboardingFormValues[K],
-  ) {
-    const next = { ...values, [key]: value };
-    setValues(next);
-    void saveProfile(next);
+  function update<K extends keyof OnboardingFormValues>(key: K, value: OnboardingFormValues[K]) {
+    if (!values) return;
+    setValues({ ...values, [key]: value });
   }
 
   async function logout() {
+    const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    router.replace(ROUTES.login);
+    router.refresh();
   }
 
-  if (loading) {
-    return <PageHeader title="Profil" subtitle="Chargement..." />;
+  if (!values) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Profil" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-64" />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Profil" subtitle="Parametres et objectifs" />
+      <PageHeader title="Profil" subtitle="Édite tes infos et objectifs." />
 
+      {/* Identity */}
       <Card>
-        <p className="text-text-soft text-sm">Identite</p>
-        <p className="mt-2 text-lg font-semibold">{email}</p>
-      </Card>
-
-      <Card className="space-y-4">
-        <p className="text-text-soft text-sm">Mensurations</p>
-        <Field label="Age" value={values.age} onChange={(v) => updateAndSave("age", v)} />
-        <Field
-          label="Taille (cm)"
-          value={values.height}
-          onChange={(v) => updateAndSave("height", v)}
-        />
-        <Field
-          label="Poids (kg)"
-          value={values.weight}
-          onChange={(v) => updateAndSave("weight", v)}
-        />
-      </Card>
-
-      <Card className="space-y-4">
-        <p className="text-text-soft text-sm">Objectif</p>
-        <div className="grid gap-2 md:grid-cols-3">
-          {GOALS.map((goal) => (
-            <button
-              key={goal.id}
-              type="button"
-              className={`rounded-xl border p-3 text-left ${values.goalType === goal.id ? "border-primary bg-primary-soft" : "border-border bg-surface-2"}`}
-              onClick={() => updateAndSave("goalType", goal.id)}
-            >
-              {goal.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-4">
+          <Avatar fallback={user?.email?.[0] ?? "?"} size="lg" />
+          <div>
+            <p className="text-sm font-medium">{user?.email ?? "Utilisateur"}</p>
+            <p className="text-xs text-muted">Compte créé via Supabase</p>
+          </div>
         </div>
-        <Field
-          label="Frequence entrainement / semaine"
-          value={values.trainingFrequency}
-          onChange={(v) => updateAndSave("trainingFrequency", v)}
-        />
-        <Field
-          label="Sommeil moyen (h)"
-          value={values.averageSleepHours}
-          step={0.5}
-          onChange={(v) => updateAndSave("averageSleepHours", v)}
-        />
-        <Field
-          label="Pas moyens / jour"
-          value={values.averageSteps}
-          onChange={(v) => updateAndSave("averageSteps", v)}
-        />
       </Card>
 
+      {/* Mensurations */}
       <Card>
-        <p className="text-text-soft text-sm">Macros calcules automatiquement</p>
-        <div className="mt-3 grid gap-2 md:grid-cols-4">
-          <MacroBadge label="Calories" value={String(macroResult.targetCalories)} />
-          <MacroBadge label="Proteines" value={`${macroResult.protein} g`} />
-          <MacroBadge label="Glucides" value={`${macroResult.carbs} g`} />
-          <MacroBadge label="Lipides" value={`${macroResult.fats} g`} />
+        <CardHeader>
+          <div>
+            <CardTitle>Mensurations</CardTitle>
+            <CardDescription>Modifications enregistrées au save.</CardDescription>
+          </div>
+        </CardHeader>
+
+        <div className="grid gap-5 md:grid-cols-2">
+          <div>
+            <Label>Sexe</Label>
+            <ToggleGroup<Sex>
+              value={values.sex}
+              onChange={(v) => update("sex", v)}
+              options={[
+                { value: "male", label: "Homme" },
+                { value: "female", label: "Femme" },
+              ]}
+              columns={2}
+            />
+          </div>
+          <div>
+            <Label>Âge</Label>
+            <Slider
+              value={values.age}
+              onChange={(v) => update("age", v)}
+              min={13}
+              max={100}
+              unit="ans"
+            />
+          </div>
+          <div>
+            <Label>Taille</Label>
+            <Slider
+              value={values.height}
+              onChange={(v) => update("height", v)}
+              min={100}
+              max={220}
+              unit="cm"
+            />
+          </div>
+          <div>
+            <Label>Poids</Label>
+            <Slider
+              value={values.weight}
+              onChange={(v) => update("weight", v)}
+              min={30}
+              max={200}
+              unit="kg"
+            />
+          </div>
         </div>
-        <Button className="mt-4" onClick={() => void saveProfile(values, true)}>
-          Recalculer mes objectifs
-        </Button>
       </Card>
 
-      <Card className="space-y-3">
-        <p className="text-text-soft text-sm">Compte</p>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => void logout()}>
-            Deconnexion
+      {/* Goal */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Objectif</CardTitle>
+        </CardHeader>
+        <ToggleGroup<GoalType>
+          value={values.goalType}
+          onChange={(v) => update("goalType", v)}
+          options={(
+            Object.entries(GOAL_DEFINITIONS) as [GoalType, (typeof GOAL_DEFINITIONS)[GoalType]][]
+          ).map(([id, def]) => ({
+            value: id,
+            label: def.label,
+            icon: def.icon,
+          }))}
+          columns={5}
+        />
+      </Card>
+
+      {/* Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Activité</CardTitle>
+        </CardHeader>
+        <div className="grid gap-5 md:grid-cols-3">
+          <div>
+            <Label>Fréquence / semaine</Label>
+            <Slider
+              value={values.trainingFrequency}
+              onChange={(v) => update("trainingFrequency", v)}
+              min={0}
+              max={7}
+              unit="jours"
+            />
+          </div>
+          <div>
+            <Label>Pas / jour</Label>
+            <Slider
+              value={values.averageSteps}
+              onChange={(v) => update("averageSteps", v)}
+              min={0}
+              max={20000}
+              step={500}
+              unit="pas"
+            />
+          </div>
+          <div>
+            <Label>Sommeil moyen</Label>
+            <Slider
+              value={values.averageSleepHours}
+              onChange={(v) => update("averageSleepHours", v)}
+              min={3}
+              max={12}
+              step={0.5}
+              unit="h"
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Macros recap */}
+      {macros ? (
+        <Card className="bg-[radial-gradient(circle_at_30%_20%,rgba(163,230,53,0.06)_0%,transparent_60%)]">
+          <CardHeader>
+            <div>
+              <CardTitle>Objectifs calculés</CardTitle>
+              <CardDescription>
+                Mis à jour automatiquement quand tu changes tes infos.
+              </CardDescription>
+            </div>
+          </CardHeader>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="text-center">
+              <p className="text-xs text-muted">Calories</p>
+              <p className="font-mono text-3xl font-semibold">
+                <AnimatedNumber value={macros.targetCalories} />
+              </p>
+              <p className="text-[10px] text-muted">kcal/jour</p>
+            </div>
+            <MacroPanel label="Protéines" value={macros.protein} color="var(--color-protein)" />
+            <MacroPanel label="Glucides" value={macros.carbs} color="var(--color-carbs)" />
+            <MacroPanel label="Lipides" value={macros.fats} color="var(--color-fats)" />
+          </div>
+
+          <Button
+            className="mt-6 w-full"
+            onClick={() => saveMutation.mutate(values)}
+            loading={saveMutation.isPending}
+            size="lg"
+          >
+            Enregistrer mes objectifs
+          </Button>
+        </Card>
+      ) : null}
+
+      {/* Account */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Compte</CardTitle>
+        </CardHeader>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={logout}>
+            <LogOut className="h-4 w-4" />
+            Déconnexion
           </Button>
           <ConfirmDialog
-            title="Supprimer le compte"
-            description="Action irreversible. Cette version V1 ne supprime pas encore en base."
+            title="Supprimer mon compte ?"
+            description="Cette action est irréversible. Toutes tes données seront perdues."
             confirmLabel="Supprimer"
             onConfirm={() => {
-              toast.info("Suppression complete arrive en V1.1");
+              toast.info("Suppression complète disponible bientôt.");
             }}
-            trigger={<Button variant="danger">Supprimer compte</Button>}
+            trigger={
+              <Button variant="danger">
+                <Trash2 className="h-4 w-4" />
+                Supprimer mon compte
+              </Button>
+            }
           />
         </div>
       </Card>
@@ -226,35 +313,19 @@ export default function ProfilePage() {
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  step = 1,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  step?: number;
-}) {
+function MacroPanel({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div>
-      <Label>{label}</Label>
-      <Input
-        type="number"
+    <div className="flex flex-col items-center gap-1 text-center">
+      <ProgressRing
         value={value}
-        step={step}
-        onChange={(event) => onChange(Number(event.target.value))}
+        max={value || 1}
+        color={color}
+        size={64}
+        stroke={6}
+        showLabel={false}
       />
+      <p className="text-xs text-muted">{label}</p>
+      <p className="font-mono text-base font-semibold">{Math.round(value)} g</p>
     </div>
-  );
-}
-
-function MacroBadge({ label, value }: { label: string; value: string }) {
-  return (
-    <Badge className="justify-center py-2">
-      <span className="text-text-soft mr-2">{label}:</span>
-      <span className="text-text font-semibold">{value}</span>
-    </Badge>
   );
 }

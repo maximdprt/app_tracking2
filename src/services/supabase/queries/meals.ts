@@ -1,89 +1,96 @@
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Database, TablesInsert } from "@/types/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
+import type { Meal, MealIngredient, MealWithIngredients } from "@/types/domain";
 
-const MEAL_COLUMNS =
-  "id,meal_date,meal_type,total_calories,total_protein,total_carbs,total_fats,notes,created_at";
-
-const INGREDIENT_COLUMNS =
-  "id,meal_id,food_item_id,custom_food_name,grams,calories,protein,carbs,fats,created_at";
-
-export type MealRow = {
-  id: string;
-  meal_date: string;
-  meal_type: string;
-  total_calories: number;
-  total_protein: number;
-  total_carbs: number;
-  total_fats: number;
-  notes: string | null;
-  created_at: string;
-};
-
-export type IngredientRow = {
-  id: string;
-  meal_id: string;
-  food_item_id: string | null;
-  custom_food_name: string | null;
-  grams: number;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  created_at: string;
-};
+type Client = SupabaseClient<Database>;
+type MealInsert = Database["public"]["Tables"]["meals"]["Insert"];
+type IngredientInsert = Database["public"]["Tables"]["meal_ingredients"]["Insert"];
 
 export async function getMealsByDate(
-  supabase: SupabaseClient<Database>,
+  client: Client,
   userId: string,
   date: string,
-): Promise<{ meals: MealRow[]; ingredients: IngredientRow[] }> {
-  const { data: meals, error: mealsError } = await supabase
+): Promise<MealWithIngredients[]> {
+  const { data: meals, error: mealsError } = await client
     .from("meals")
-    .select(MEAL_COLUMNS)
+    .select("*")
     .eq("user_id", userId)
     .eq("meal_date", date)
-    .order("created_at", { ascending: false });
-
-  if (mealsError) throw mealsError;
-
-  const mealIds = (meals ?? []).map((meal) => meal.id);
-  if (mealIds.length === 0) return { meals: (meals ?? []) as MealRow[], ingredients: [] };
-
-  const { data: ingredients, error: ingredientsError } = await supabase
-    .from("meal_ingredients")
-    .select(INGREDIENT_COLUMNS)
-    .eq("user_id", userId)
-    .in("meal_id", mealIds)
     .order("created_at", { ascending: true });
 
-  if (ingredientsError) throw ingredientsError;
+  if (mealsError) throw mealsError;
+  if (!meals || meals.length === 0) return [];
 
-  return { meals: (meals ?? []) as MealRow[], ingredients: (ingredients ?? []) as IngredientRow[] };
+  const mealIds = meals.map((m) => m.id);
+  const { data: ingredients, error: ingError } = await client
+    .from("meal_ingredients")
+    .select("*")
+    .in("meal_id", mealIds);
+
+  if (ingError) throw ingError;
+
+  return meals.map((m) => ({
+    ...m,
+    ingredients: (ingredients ?? []).filter((i) => i.meal_id === m.id),
+  }));
 }
 
 export async function createMealWithIngredients(
-  supabase: SupabaseClient<Database>,
-  meal: TablesInsert<"meals">,
-  ingredients: Omit<TablesInsert<"meal_ingredients">, "meal_id">[],
-): Promise<void> {
-  const { data: mealRow, error: mealError } = await supabase
+  client: Client,
+  meal: MealInsert,
+  ingredients: Omit<IngredientInsert, "meal_id">[],
+): Promise<Meal> {
+  const { data: createdMeal, error: mealError } = await client
     .from("meals")
     .insert(meal)
-    .select("id")
+    .select("*")
     .single();
-
   if (mealError) throw mealError;
 
-  const payload = ingredients.map((item) => ({ ...item, meal_id: mealRow.id }));
-  const { error: ingredientsError } = await supabase.from("meal_ingredients").insert(payload);
-  if (ingredientsError) throw ingredientsError;
+  if (ingredients.length > 0) {
+    const payload: IngredientInsert[] = ingredients.map((i) => ({ ...i, meal_id: createdMeal.id }));
+    const { error: ingError } = await client.from("meal_ingredients").insert(payload);
+    if (ingError) throw ingError;
+  }
+
+  return createdMeal;
 }
 
-export async function deleteMeal(
-  supabase: SupabaseClient<Database>,
-  userId: string,
-  mealId: string,
-): Promise<void> {
-  const { error } = await supabase.from("meals").delete().eq("user_id", userId).eq("id", mealId);
+export async function deleteMeal(client: Client, mealId: string): Promise<void> {
+  const { error } = await client.from("meals").delete().eq("id", mealId);
   if (error) throw error;
+}
+
+export async function deleteIngredient(client: Client, ingredientId: string): Promise<void> {
+  const { error } = await client.from("meal_ingredients").delete().eq("id", ingredientId);
+  if (error) throw error;
+}
+
+export async function recalculateMealTotals(client: Client, mealId: string): Promise<void> {
+  const { data: ingredients, error } = await client
+    .from("meal_ingredients")
+    .select("calories, protein, carbs, fats")
+    .eq("meal_id", mealId);
+  if (error) throw error;
+
+  const totals = (ingredients ?? []).reduce(
+    (acc, i) => ({
+      calories: acc.calories + (i.calories ?? 0),
+      protein: acc.protein + (i.protein ?? 0),
+      carbs: acc.carbs + (i.carbs ?? 0),
+      fats: acc.fats + (i.fats ?? 0),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fats: 0 },
+  );
+
+  const { error: updateError } = await client
+    .from("meals")
+    .update({
+      total_calories: totals.calories,
+      total_protein: totals.protein,
+      total_carbs: totals.carbs,
+      total_fats: totals.fats,
+    })
+    .eq("id", mealId);
+  if (updateError) throw updateError;
 }

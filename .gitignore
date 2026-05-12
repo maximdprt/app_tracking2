@@ -1,5 +1,10 @@
 node_modules
 .next
 out
-.env.local.backup
-
+.env
+.env.local
+.env*.local
+*.tsbuildinfo
+.DS_Store
+.vercel
+dist

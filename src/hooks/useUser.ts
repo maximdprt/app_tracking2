@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/services/supabase/client";
 
 export function useUser() {
-  const [email, setEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    void supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
-  }, []);
-
-  return { email };
+  return useQuery({
+    queryKey: ["auth", "user"],
+    queryFn: async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 }

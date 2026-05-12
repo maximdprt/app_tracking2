@@ -1,47 +1,127 @@
 "use client";
+
 import Link from "next/link";
-import { Dumbbell } from "lucide-react";
-import { useWorkoutSession } from "@/hooks/useWorkoutSession";
+import { Dumbbell, Plus, Zap } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { ROUTES } from "@/constants/routes";
+import { useWorkoutSessions } from "@/hooks/useWorkoutSession";
+import { useUser } from "@/hooks/useUser";
+import { createClient } from "@/services/supabase/client";
+import { getWeeklyVolume } from "@/services/supabase/queries/stats";
+import { formatDateRelative } from "@/utils/dates";
+import { formatDuration } from "@/lib/format";
+
 export default function TrainingPage() {
-  const sessions = useWorkoutSession().data ?? [];
+  const { data: user } = useUser();
+  const sessionsQuery = useWorkoutSessions(10);
+
+  const volumeQuery = useQuery({
+    queryKey: ["weekly-volume", user?.id ?? null],
+    enabled: Boolean(user?.id),
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const supabase = createClient();
+      return getWeeklyVolume(supabase, user.id, 1);
+    },
+  });
+
+  const sessions = sessionsQuery.data ?? [];
+  const completed = sessions.filter((s) => s.status === "completed").length;
+  const lastVolume = volumeQuery.data?.[volumeQuery.data.length - 1]?.volume ?? 0;
+
+  if (sessionsQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Entraînement" />
+        <div className="grid gap-3 md:grid-cols-3">
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Entrainement" subtitle="Suivi de tes seances" />
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label="Seances recentes" value={sessions.length} />
-        <StatCard label="Frequence 7j" value={Math.min(7, sessions.length)} suffix="jours" />
-        <StatCard label="Volume semaine" value={Math.round(sessions.length * 850)} suffix="kg" />
+      <PageHeader
+        title="Entraînement"
+        subtitle="Logging, programmes, progression"
+        actions={
+          <Link href={ROUTES.trainingStart}>
+            <Button>
+              <Zap className="h-4 w-4" />
+              Démarrer une séance
+            </Button>
+          </Link>
+        }
+      />
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <StatCard label="Séances 7j" value={completed} />
+        <StatCard label="Volume semaine" value={lastVolume} suffix="kg" />
+        <StatCard label="Total séances" value={sessions.length} />
       </div>
+
       <div className="flex gap-2">
-        <Link href="/training/start">
-          <Button>Demarrer une seance</Button>
-        </Link>
-        <Link href="/training/programs">
-          <Button variant="secondary">Programmes</Button>
+        <Link href={ROUTES.trainingPrograms}>
+          <Button variant="secondary">Voir mes programmes</Button>
         </Link>
       </div>
+
+      <h2 className="text-lg font-semibold tracking-tight">Séances récentes</h2>
+
       {sessions.length === 0 ? (
         <EmptyState
           icon={Dumbbell}
-          title="Aucune seance"
-          description="Commence ta premiere seance pour alimenter les stats."
+          title="Aucune séance"
+          description="Lance ta première séance pour alimenter ta progression."
+          action={
+            <Link href={ROUTES.trainingStart}>
+              <Button>
+                <Plus className="h-4 w-4" />
+                Démarrer
+              </Button>
+            </Link>
+          }
         />
       ) : (
-        <div className="grid gap-3">
-          {sessions.map((session) => (
-            <Card
-              key={session.id}
-              className="hover:border-border-strong transition-all duration-200"
-            >
-              <p className="text-text-soft text-sm">{session.session_date}</p>
-              <p className="mt-1 text-lg font-semibold">{session.workout_name ?? "Seance"}</p>
-              <p className="text-text-soft text-xs">{session.status}</p>
-            </Card>
+        <div className="grid gap-3 md:grid-cols-2">
+          {sessions.map((s) => (
+            <Link key={s.id} href={`${ROUTES.training}/${s.id}`}>
+              <Card className="flex h-full cursor-pointer items-center justify-between hover:border-border-strong">
+                <div>
+                  <p className="text-sm font-medium">{s.workout_name ?? "Séance libre"}</p>
+                  <p className="text-xs text-text-soft capitalize">
+                    {formatDateRelative(s.session_date)}
+                    {s.duration_minutes ? ` · ${formatDuration(s.duration_minutes)}` : ""}
+                  </p>
+                </div>
+                <Badge
+                  variant={
+                    s.status === "completed"
+                      ? "success"
+                      : s.status === "skipped"
+                        ? "warning"
+                        : "default"
+                  }
+                >
+                  {s.status === "completed"
+                    ? "Terminée"
+                    : s.status === "skipped"
+                      ? "Sautée"
+                      : "Planifiée"}
+                </Badge>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

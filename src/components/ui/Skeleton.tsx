@@ -1,3 +1,8 @@
-export function Skeleton({ className = "h-5 w-full" }: { className?: string }) {
-  return <div className={`bg-surface-2 animate-pulse rounded-xl ${className}`} />;
+import { HTMLAttributes } from "react";
+import { cn } from "@/lib/utils";
+
+export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("shimmer rounded-xl bg-surface-2", className)} {...props} />
+  );
 }

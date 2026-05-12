@@ -1,52 +1,63 @@
 "use client";
 
 import { ReactNode, useState } from "react";
+import { Dialog } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 
+interface ConfirmDialogProps {
+  trigger: ReactNode;
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => Promise<void> | void;
+  variant?: "default" | "danger";
+}
+
 export function ConfirmDialog({
+  trigger,
   title,
   description,
-  confirmLabel,
-  trigger,
+  confirmLabel = "Confirmer",
+  cancelLabel = "Annuler",
   onConfirm,
-}: {
-  title: string;
-  description: string;
-  confirmLabel: string;
-  trigger: ReactNode;
-  onConfirm: () => Promise<void> | void;
-}) {
+  variant = "danger",
+}: ConfirmDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  async function handleConfirm() {
+    try {
+      setLoading(true);
+      await onConfirm();
+      setOpen(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <>
-      <div onClick={() => setOpen(true)}>{trigger}</div>
-      {open ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-          <div className="border-border bg-surface w-full max-w-md rounded-2xl border p-6">
-            <h3 className="text-lg font-semibold">{title}</h3>
-            <p className="text-text-soft mt-2 text-sm">{description}</p>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setOpen(false)}>
-                Annuler
-              </Button>
-              <Button
-                variant="danger"
-                loading={loading}
-                onClick={async () => {
-                  setLoading(true);
-                  await onConfirm();
-                  setLoading(false);
-                  setOpen(false);
-                }}
-              >
-                {confirmLabel}
-              </Button>
-            </div>
-          </div>
+      <span onClick={() => setOpen(true)}>{trigger}</span>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title={title}
+        {...(description !== undefined ? { description } : {})}
+      >
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setOpen(false)} disabled={loading}>
+            {cancelLabel}
+          </Button>
+          <Button
+            variant={variant === "danger" ? "danger" : "primary"}
+            loading={loading}
+            onClick={handleConfirm}
+          >
+            {confirmLabel}
+          </Button>
         </div>
-      ) : null}
+      </Dialog>
     </>
   );
 }

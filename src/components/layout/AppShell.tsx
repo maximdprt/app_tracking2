@@ -1,21 +1,19 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
-export function AppShell({
-  title,
-  email,
-  children,
-}: {
-  title: string;
+
+interface AppShellProps {
   email: string | undefined;
   children: React.ReactNode;
-}) {
+}
+
+export function AppShell({ email, children }: AppShellProps) {
   return (
-    <div className="bg-background text-text min-h-screen lg:flex">
+    <div className="min-h-screen bg-background text-text lg:flex">
       <Sidebar email={email} />
-      <div className="flex-1">
-        <Topbar title={title} />
-        <main className="mx-auto w-full max-w-7xl px-6 py-8 lg:px-10">{children}</main>
+      <div className="flex min-h-screen flex-1 flex-col">
+        <Topbar />
+        <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8 lg:px-10">{children}</main>
       </div>
       <CommandPalette />
     </div>

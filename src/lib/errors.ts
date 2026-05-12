@@ -8,13 +8,14 @@ export type ErrorCode =
   | "RATE_LIMIT";
 
 export class AppError extends Error {
-  constructor(
-    public code: ErrorCode,
-    message: string,
-    public cause?: unknown,
-  ) {
+  public code: ErrorCode;
+  public cause?: unknown;
+
+  constructor(code: ErrorCode, message: string, cause?: unknown) {
     super(message);
     this.name = "AppError";
+    this.code = code;
+    if (cause !== undefined) this.cause = cause;
   }
 }
 
@@ -25,27 +26,28 @@ export function toUserMessage(err: unknown): string {
       case "AUTH":
         if (m.includes("email not confirmed")) return "Confirme ton email avant de te connecter.";
         if (m.includes("invalid login")) return "Email ou mot de passe incorrect.";
-        if (m.includes("already registered") || m.includes("already exists")) {
-          return "Un compte existe deja avec cet email.";
-        }
-        if (m.includes("weak password")) return "Mot de passe trop faible (min. 6 caracteres).";
-        if (m.includes("rate limit")) return "Trop de tentatives. Reessaie dans une minute.";
-        return "Probleme d'authentification. Reconnecte-toi.";
+        if (m.includes("already registered") || m.includes("already exists"))
+          return "Un compte existe déjà avec cet email.";
+        if (m.includes("weak password")) return "Mot de passe trop faible (min. 6 caractères).";
+        if (m.includes("rate limit")) return "Trop de tentatives. Réessaie dans une minute.";
+        return "Problème d'authentification.";
       case "VALIDATION":
         return err.message;
       case "NOT_FOUND":
-        return "Element introuvable.";
+        return "Élément introuvable.";
       case "PERMISSION":
-        return "Tu n'as pas acces a cette ressource.";
+        return "Tu n'as pas accès à cette ressource.";
       case "NETWORK":
-        return "Connexion instable. Reessaie.";
+        return "Connexion instable. Réessaie.";
       case "RATE_LIMIT":
-        return "Trop de tentatives. Reessaie dans une minute.";
+        return "Trop de tentatives. Réessaie dans une minute.";
       case "SERVER":
       default:
-        return "Une erreur serveur est survenue. Reessaie dans un instant.";
+        return "Une erreur serveur est survenue. Réessaie dans un instant.";
     }
   }
-  console.error("[Unhandled]", err);
+  if (err instanceof Error) {
+    console.error("[Unhandled Error]", err);
+  }
   return "Une erreur inattendue est survenue.";
 }

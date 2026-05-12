@@ -1,16 +1,15 @@
 import { useEffect } from "react";
 
-export function useKeyboardShortcut(key: string, callback: () => void) {
+export function useKeyboardShortcut(key: string, handler: () => void, withMeta = true) {
   useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      const command = event.metaKey || event.ctrlKey;
-      if (command && event.key.toLowerCase() === key.toLowerCase()) {
-        event.preventDefault();
-        callback();
+    function onKey(e: KeyboardEvent) {
+      const isMeta = e.metaKey || e.ctrlKey;
+      if (e.key.toLowerCase() === key.toLowerCase() && (!withMeta || isMeta)) {
+        e.preventDefault();
+        handler();
       }
     }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [callback, key]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [key, handler, withMeta]);
 }

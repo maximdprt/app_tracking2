@@ -1,30 +1,50 @@
 "use client";
 
-import { createClient } from "@/services/supabase/client";
+import { LogOut, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { DropdownMenu } from "@/components/ui/DropdownMenu";
+import { createClient } from "@/services/supabase/client";
+import { ROUTES } from "@/constants/routes";
+import { truncateEmail } from "@/lib/format";
 
-export function UserMenu({ email }: { email: string | undefined }) {
-  const short =
-    email && email.length > 24 ? `${email.slice(0, 24)}...` : (email ?? "user@lift.app");
+interface UserMenuProps {
+  email: string | undefined;
+}
 
-  async function handleSignOut() {
+export function UserMenu({ email }: UserMenuProps) {
+  const router = useRouter();
+
+  async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    router.replace(ROUTES.login);
+    router.refresh();
   }
 
   return (
     <DropdownMenu
+      align="left"
       trigger={
-        <div className="border-border bg-surface-2 flex w-full items-center gap-3 rounded-xl border px-3 py-2">
-          <Avatar email={email} />
-          <p className="text-text-soft max-w-40 truncate text-xs">{short}</p>
+        <div className="flex items-center gap-2 rounded-xl px-2 py-2 text-left transition-colors hover:bg-surface-2">
+          <Avatar fallback={email?.[0] ?? "?"} size="sm" />
+          <span className="truncate text-xs text-text-soft">
+            {email ? truncateEmail(email, 18) : "Utilisateur"}
+          </span>
         </div>
       }
       items={[
-        { label: "Profil", onClick: () => (window.location.href = "/profile") },
-        { label: "Deconnexion", onClick: () => void handleSignOut() },
+        {
+          label: "Profil",
+          icon: <User className="h-3.5 w-3.5" />,
+          onClick: () => router.push(ROUTES.profile),
+        },
+        {
+          label: "Déconnexion",
+          icon: <LogOut className="h-3.5 w-3.5" />,
+          variant: "danger",
+          onClick: handleLogout,
+        },
       ]}
     />
   );
