@@ -12,6 +12,7 @@ export const ROUTES = {
   training: "/training",
   trainingStart: "/training/start",
   trainingPrograms: "/training/programs",
+  trainingProgress: "/training/progress",
   stats: "/stats",
   habits: "/habits",
   coach: "/coach",

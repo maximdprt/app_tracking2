@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { ChatMessage } from "@/types/domain";
 
 interface CoachState {
@@ -8,19 +9,30 @@ interface CoachState {
   clear: () => void;
 }
 
-export const useCoachStore = create<CoachState>((set) => ({
-  messages: [],
-  addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
-  appendToLastAssistant: (chunk) =>
-    set((s) => {
-      const last = s.messages[s.messages.length - 1];
-      if (!last || last.role !== "assistant") {
-        return {
-          messages: [...s.messages, { id: crypto.randomUUID(), role: "assistant", content: chunk }],
-        };
-      }
-      const updated = [...s.messages.slice(0, -1), { ...last, content: last.content + chunk }];
-      return { messages: updated };
+export const useCoachStore = create<CoachState>()(
+  persist(
+    (set) => ({
+      messages: [],
+      addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+      appendToLastAssistant: (chunk) =>
+        set((s) => {
+          const last = s.messages[s.messages.length - 1];
+          if (!last || last.role !== "assistant") {
+            return {
+              messages: [
+                ...s.messages,
+                { id: crypto.randomUUID(), role: "assistant", content: chunk },
+              ],
+            };
+          }
+          const updated = [
+            ...s.messages.slice(0, -1),
+            { ...last, content: last.content + chunk },
+          ];
+          return { messages: updated };
+        }),
+      clear: () => set({ messages: [] }),
     }),
-  clear: () => set({ messages: [] }),
-}));
+    { name: "lift-coach-chat" },
+  ),
+);

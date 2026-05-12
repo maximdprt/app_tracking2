@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, Plus, Salad, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Salad, Trash2, ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -15,12 +15,14 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { DateNavigator } from "@/components/shared/DateNavigator";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { AnimatedNumber } from "@/components/shared/AnimatedNumber";
+import { Dialog } from "@/components/ui/Dialog";
 import { MEAL_TYPES } from "@/constants/meal-types";
 import { ROUTES } from "@/constants/routes";
 import { useMeals } from "@/hooks/useMeals";
 import { useToday } from "@/hooks/useToday";
 import { createClient } from "@/services/supabase/client";
 import { deleteMeal } from "@/services/supabase/queries/meals";
+import { getMealPhotoUrl } from "@/services/supabase/queries/storage";
 import { toUserMessage } from "@/lib/errors";
 import type { MealWithIngredients, MealType } from "@/types/domain";
 
@@ -224,7 +226,18 @@ function MealColumn({
 
 function MealCard({ meal }: { meal: MealWithIngredients }) {
   const [open, setOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  const photoUrlQuery = useQuery({
+    queryKey: ["meal-photo-url", meal.photo_url],
+    enabled: Boolean(meal.photo_url),
+    staleTime: 50 * 60 * 1000,
+    queryFn: async () => {
+      if (!meal.photo_url) return null;
+      return getMealPhotoUrl(createClient(), meal.photo_url);
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -243,8 +256,32 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between text-left"
+        className="flex w-full items-center justify-between gap-2 text-left"
       >
+        {/* Photo thumbnail */}
+        {meal.photo_url ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPhotoOpen(true);
+            }}
+            className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-surface"
+          >
+            {photoUrlQuery.data ? (
+              <img
+                src={photoUrlQuery.data}
+                alt="Photo repas"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <ImageIcon className="h-4 w-4 text-muted" />
+              </div>
+            )}
+          </button>
+        ) : null}
+
         <div className="flex-1">
           <p className="font-mono text-sm">{Math.round(meal.total_calories)} kcal</p>
           <p className="text-[10px] text-muted">
@@ -253,9 +290,10 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
           </p>
         </div>
         <ChevronDown
-          className={`h-3.5 w-3.5 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-3.5 w-3.5 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
+
       {open ? (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
@@ -286,6 +324,17 @@ function MealCard({ meal }: { meal: MealWithIngredients }) {
             />
           </div>
         </motion.div>
+      ) : null}
+
+      {/* Photo fullscreen dialog */}
+      {meal.photo_url && photoUrlQuery.data ? (
+        <Dialog open={photoOpen} onOpenChange={setPhotoOpen} title="Photo du repas">
+          <img
+            src={photoUrlQuery.data}
+            alt="Photo du repas"
+            className="w-full rounded-xl object-contain"
+          />
+        </Dialog>
       ) : null}
     </div>
   );

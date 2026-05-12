@@ -3,7 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Plus } from "lucide-react";
+import { ChevronLeft, Plus, TrendingUp } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { differenceInMinutes, parseISO } from "date-fns";
@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Badge } from "@/components/ui/Badge";
 import { ExerciseLogger } from "@/features/training/ExerciseLogger";
+import { ExerciseProgressChart } from "@/features/training/ExerciseProgressChart";
 import { ROUTES } from "@/constants/routes";
 import { useWorkoutSession } from "@/hooks/useWorkoutSession";
 import { useUser } from "@/hooks/useUser";
@@ -38,6 +39,7 @@ export default function SessionDetailPage({ params }: PageProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [exerciseName, setExerciseName] = useState("");
   const [elapsed, setElapsed] = useState(0);
+  const [progressExercise, setProgressExercise] = useState<string | null>(null);
 
   const session = sessionQuery.data;
 
@@ -153,12 +155,21 @@ export default function SessionDetailPage({ params }: PageProps) {
           </div>
         ) : (
           session.exercises.map((ex) => (
-            <ExerciseLogger
-              key={ex.id}
-              exercise={ex}
-              userId={user?.id ?? ""}
-              previousBestVolume={0}
-            />
+            <div key={ex.id} className="space-y-2">
+              <ExerciseLogger
+                exercise={ex}
+                userId={user?.id ?? ""}
+                previousBestVolume={0}
+              />
+              <button
+                type="button"
+                onClick={() => setProgressExercise(ex.exercise_name)}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-text-soft hover:bg-surface-2 hover:text-text"
+              >
+                <TrendingUp className="h-3 w-3" />
+                Voir progression
+              </button>
+            </div>
           ))
         )}
       </div>
@@ -219,6 +230,19 @@ export default function SessionDetailPage({ params }: PageProps) {
             </Button>
           </div>
         </div>
+      </Dialog>
+
+      {/* Progress dialog */}
+      <Dialog
+        open={progressExercise !== null}
+        onOpenChange={(open) => {
+          if (!open) setProgressExercise(null);
+        }}
+        title={progressExercise ? `Progression — ${progressExercise}` : "Progression"}
+      >
+        {progressExercise && user?.id ? (
+          <ExerciseProgressChart exerciseName={progressExercise} userId={user.id} />
+        ) : null}
       </Dialog>
     </div>
   );

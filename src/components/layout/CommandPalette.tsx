@@ -7,6 +7,7 @@ import {
   Bot,
   Dumbbell,
   Home,
+  MessageCircle,
   Plus,
   Salad,
   Settings2,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { useUIStore } from "@/stores/useUIStore";
+import { useChatPanelStore } from "@/stores/useChatPanelStore";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { ROUTES } from "@/constants/routes";
 
@@ -22,8 +24,10 @@ export function CommandPalette() {
   const router = useRouter();
   const open = useUIStore((s) => s.commandOpen);
   const setOpen = useUIStore((s) => s.setCommandOpen);
+  const openChat = useChatPanelStore((s) => s.open);
 
   useKeyboardShortcut("k", () => setOpen(true));
+  useKeyboardShortcut("j", () => openChat());
 
   useEffect(() => {
     if (!open) return;
@@ -36,6 +40,11 @@ export function CommandPalette() {
   function go(path: string) {
     setOpen(false);
     router.push(path);
+  }
+
+  function openChatPanel() {
+    setOpen(false);
+    openChat();
   }
 
   return (
@@ -64,6 +73,13 @@ export function CommandPalette() {
               icon={<Zap className="h-4 w-4" />}
             >
               Démarrer une séance
+            </CommandItem>
+            <CommandItem
+              onSelect={openChatPanel}
+              icon={<MessageCircle className="h-4 w-4" />}
+            >
+              Ouvrir le coach IA
+              <span className="ml-auto font-mono text-[10px] text-muted">⌘J</span>
             </CommandItem>
           </Command.Group>
 

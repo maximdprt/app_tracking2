@@ -1,31 +1,42 @@
 "use client";
 
+import type React from "react";
 import Link from "next/link";
 import { Plus, Sparkles, Zap } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { ProgressRing } from "@/components/shared/ProgressRing";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToday } from "@/hooks/useToday";
+import { useSleep, useSteps, useLatestWeight } from "@/hooks/useDaily";
 import { ROUTES } from "@/constants/routes";
 import { formatDateRelative, todayISO } from "@/utils/dates";
 
 export default function DashboardPage() {
   const { profile, totals, targets, sessions, isLoading } = useToday();
+  const today = todayISO();
+  const sleepQuery = useSleep(today);
+  const stepsQuery = useSteps(today);
+  const latestWeightQuery = useLatestWeight();
 
   if (isLoading) return <DashboardSkeleton />;
 
   const calsRemaining = Math.max(0, targets.calories - totals.calories);
-  const todaySession = sessions.find((s) => s.session_date === todayISO());
+  const todaySession = sessions.find((s) => s.session_date === today);
   const firstName = profile?.user_id?.slice(0, 2).toUpperCase() ?? "";
+
+  const todaySleep = sleepQuery.data;
+  const todaySteps = stepsQuery.data;
+  const latestWeight = latestWeightQuery.data;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={`Bonjour${firstName ? `, ${firstName}` : ""}`}
-        subtitle={formatDateRelative(todayISO())}
+        subtitle={formatDateRelative(today)}
       />
 
       {/* Hero grid */}
@@ -86,18 +97,70 @@ export default function DashboardPage() {
           className="lg:col-span-3"
         />
         <StatCard label="Séances 7j" value={sessions.length} className="lg:col-span-3" />
-        <StatCard
-          label="Sommeil moyen"
-          value={profile?.average_sleep_hours ?? 0}
-          suffix="h"
-          decimals={1}
-          className="lg:col-span-3"
-        />
-        <StatCard
-          label="Pas / jour"
-          value={profile?.average_steps ?? 0}
-          className="lg:col-span-3"
-        />
+
+        {/* Sleep stat — from daily log */}
+        <div className="lg:col-span-3">
+          {sleepQuery.isLoading ? (
+            <Skeleton className="h-28" />
+          ) : todaySleep ? (
+            <DailyStatCard
+              label="Sommeil"
+              value={`${todaySleep.hours}h`}
+              badge={<Badge variant="success">Aujourd'hui</Badge>}
+            />
+          ) : (
+            <DailyStatCard
+              label="Sommeil"
+              value="—"
+              muted
+              action={<Link href={ROUTES.habits} className="text-xs text-primary hover:underline">Ajouter</Link>}
+            />
+          )}
+        </div>
+
+        {/* Steps stat — from daily log */}
+        <div className="lg:col-span-3">
+          {stepsQuery.isLoading ? (
+            <Skeleton className="h-28" />
+          ) : todaySteps ? (
+            <DailyStatCard
+              label="Pas"
+              value={todaySteps.steps.toLocaleString()}
+              badge={<Badge variant="success">Aujourd'hui</Badge>}
+            />
+          ) : (
+            <DailyStatCard
+              label="Pas"
+              value="—"
+              muted
+              action={<Link href={ROUTES.habits} className="text-xs text-primary hover:underline">Ajouter</Link>}
+            />
+          )}
+        </div>
+
+        {/* Weight stat */}
+        <div className="lg:col-span-3">
+          {latestWeightQuery.isLoading ? (
+            <Skeleton className="h-28" />
+          ) : latestWeight ? (
+            <DailyStatCard
+              label="Poids"
+              value={`${latestWeight.weight} kg`}
+              badge={
+                latestWeight.log_date === today ? (
+                  <Badge variant="success">Aujourd'hui</Badge>
+                ) : undefined
+              }
+            />
+          ) : (
+            <DailyStatCard
+              label="Poids"
+              value="—"
+              muted
+              action={<Link href={ROUTES.habits} className="text-xs text-primary hover:underline">Ajouter</Link>}
+            />
+          )}
+        </div>
 
         {/* Today session */}
         <Card className="lg:col-span-7">
@@ -111,12 +174,33 @@ export default function DashboardPage() {
               <CardDescription>Pas de séance enregistrée aujourd'hui.</CardDescription>
             )}
           </CardHeader>
-          <Link href={todaySession ? `${ROUTES.training}/${todaySession.id}` : ROUTES.trainingStart}>
-            <Button variant="secondary">
-              <Zap className="h-4 w-4" />
-              {todaySession ? "Continuer" : "Démarrer une séance"}
-            </Button>
-          </Link>
+          {todaySession?.status === "completed" ? (
+            <div className="space-y-2">
+              <div className="flex gap-4 text-sm">
+                {todaySession.duration_minutes ? (
+                  <span className="text-text-soft">
+                    <span className="font-mono text-text">{todaySession.duration_minutes}</span> min
+                  </span>
+                ) : null}
+              </div>
+              <Link href={`${ROUTES.training}/${todaySession.id}`}>
+                <Button variant="secondary" size="sm">
+                  Voir le détail
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <Link
+              href={
+                todaySession ? `${ROUTES.training}/${todaySession.id}` : ROUTES.trainingStart
+              }
+            >
+              <Button variant={todaySession ? "secondary" : "primary"} size="lg" className="w-full">
+                <Zap className="h-4 w-4" />
+                {todaySession ? "Continuer ma séance" : "Démarrer ma séance"}
+              </Button>
+            </Link>
+          )}
         </Card>
 
         {/* AI summary */}
@@ -178,6 +262,33 @@ function MacroBlock({
       <p className="mt-2 text-xs text-text-soft">{label}</p>
       <p className="font-mono text-[10px] text-muted">/ {Math.round(max)} g</p>
     </div>
+  );
+}
+
+function DailyStatCard({
+  label,
+  value,
+  badge,
+  muted,
+  action,
+}: {
+  label: string;
+  value: string;
+  badge?: React.ReactNode;
+  muted?: boolean;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Card className="flex h-28 flex-col justify-between">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
+        {badge}
+      </div>
+      <p className={`font-mono text-2xl font-semibold ${muted ? "text-muted" : "text-text"}`}>
+        {value}
+      </p>
+      {action ? <div>{action}</div> : <span />}
+    </Card>
   );
 }
 

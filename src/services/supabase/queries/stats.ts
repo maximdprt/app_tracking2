@@ -97,17 +97,10 @@ export async function getWeightHistory(
   userId: string,
 ): Promise<{ date: string; weight: number }[]> {
   const { data, error } = await client
-    .from("users_profiles")
-    .select("weight, updated_at")
+    .from("weight_logs")
+    .select("log_date, weight")
     .eq("user_id", userId)
-    .order("updated_at", { ascending: true });
-
+    .order("log_date", { ascending: true });
   if (error) throw error;
-
-  return (data ?? [])
-    .filter((p) => p.weight !== null)
-    .map((p) => ({
-      date: p.updated_at.slice(0, 10),
-      weight: p.weight as number,
-    }));
+  return (data ?? []).map((r) => ({ date: r.log_date, weight: r.weight }));
 }

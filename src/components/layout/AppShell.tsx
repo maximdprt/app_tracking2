@@ -1,6 +1,8 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
+import { ChatPanel } from "@/components/layout/ChatPanel";
+import { ChatFAB } from "@/components/layout/ChatFAB";
 
 interface AppShellProps {
   email: string | undefined;
@@ -16,6 +18,8 @@ export function AppShell({ email, children }: AppShellProps) {
         <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8 lg:px-10">{children}</main>
       </div>
       <CommandPalette />
+      <ChatPanel />
+      <ChatFAB />
     </div>
   );
 }

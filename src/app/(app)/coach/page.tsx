@@ -9,7 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Ca
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useCoachStore } from "@/stores/useCoachStore";
+import { useCoachChat } from "@/hooks/useCoachChat";
 import { useUser } from "@/hooks/useUser";
 import { createClient } from "@/services/supabase/client";
 import { getDailySummary } from "@/services/supabase/queries/summaries";
@@ -26,12 +26,9 @@ const SUGGESTIONS = [
 export default function CoachPage() {
   const { data: user } = useUser();
   const queryClient = useQueryClient();
-  const messages = useCoachStore((s) => s.messages);
-  const addMessage = useCoachStore((s) => s.addMessage);
-  const appendToLastAssistant = useCoachStore((s) => s.appendToLastAssistant);
+  const { messages, streaming, send, clear } = useCoachChat();
 
   const [input, setInput] = useState("");
-  const [streaming, setStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const summaryQuery = useQuery({
@@ -61,51 +58,18 @@ export default function CoachPage() {
     onError: (err) => toast.error(toUserMessage(err)),
   });
 
-  async function send(text: string) {
-    const trimmed = text.trim();
-    if (!trimmed || streaming) return;
-
-    addMessage({ id: crypto.randomUUID(), role: "user", content: trimmed });
-    setInput("");
-    setStreaming(true);
-    addMessage({ id: crypto.randomUUID(), role: "assistant", content: "" });
-
-    try {
-      const res = await fetch("/api/ai/coach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...messages, { role: "user", content: trimmed }].map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        }),
-      });
-
-      if (!res.ok || !res.body) {
-        throw new Error("Erreur de streaming");
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        appendToLastAssistant(chunk);
-      }
-    } catch (err) {
-      toast.error(toUserMessage(err));
-    } finally {
-      setStreaming(false);
-    }
-  }
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="Coach IA"
         subtitle="Synthèse intelligente et conseils personnalisés"
+        actions={
+          messages.length > 0 ? (
+            <Button variant="ghost" size="sm" onClick={clear}>
+              Effacer la conversation
+            </Button>
+          ) : undefined
+        }
       />
 
       <div className="grid gap-4 lg:grid-cols-12">
@@ -230,12 +194,20 @@ export default function CoachPage() {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     send(input);
+                    setInput("");
                   }
                 }}
                 placeholder="Écris ton message..."
                 disabled={streaming}
               />
-              <Button onClick={() => send(input)} loading={streaming} disabled={!input.trim()}>
+              <Button
+                onClick={() => {
+                  send(input);
+                  setInput("");
+                }}
+                loading={streaming}
+                disabled={!input.trim()}
+              >
                 <Send className="h-4 w-4" />
               </Button>
             </div>

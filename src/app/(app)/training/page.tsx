@@ -75,6 +75,9 @@ export default function TrainingPage() {
         <Link href={ROUTES.trainingPrograms}>
           <Button variant="secondary">Voir mes programmes</Button>
         </Link>
+        <Link href={ROUTES.trainingProgress}>
+          <Button variant="secondary">Voir mes progressions</Button>
+        </Link>
       </div>
 
       <h2 className="text-lg font-semibold tracking-tight">Séances récentes</h2>
