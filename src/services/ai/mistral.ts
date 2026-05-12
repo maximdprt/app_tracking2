@@ -88,8 +88,16 @@ Si tu ne reconnais pas un aliment, n'invente pas — omets-le.`;
   const data = (await response.json()) as { choices?: { message?: { content?: string } }[] };
   const content = data?.choices?.[0]?.message?.content ?? "{}";
   const cleaned = content.replace(/```json|```/g, "").trim();
-  const parsed = JSON.parse(cleaned) as MealAnalysisResult;
-  if (!Array.isArray(parsed.ingredients)) throw new Error("Réponse IA invalide");
+  let parsed: MealAnalysisResult;
+  try {
+    parsed = JSON.parse(cleaned) as MealAnalysisResult;
+  } catch {
+    throw new Error("Réponse IA illisible (JSON invalide)");
+  }
+  if (!Array.isArray(parsed.ingredients)) throw new Error("Réponse IA invalide : pas de liste d'ingrédients");
+  if (typeof parsed.description !== "string") {
+    parsed.description = "";
+  }
   return parsed;
 }
 

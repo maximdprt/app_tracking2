@@ -1,11 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import type { FoodItem } from "@/types/domain";
 
 type Client = SupabaseClient<Database>;
 
-/** Retire les caractères qui cassent les motifs `.ilike.%…%` ou le parseur `.or()` PostgREST */
-function safeIlike(text: string): string {
+/** Échappe %, _ et \ pour des motifs ILIKE corrects (sinon ils agissent comme wildcards SQL). */
+function escapeIlike(text: string): string {
+  return text.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+/** Nettoie la requête utilisateur / libellé IA pour éviter les motifs ILIKE vides ou trop permissifs */
+function safeSearchToken(text: string): string {
   return text
     .trim()
     .replace(/[%_,()[\]]/g, " ")
@@ -13,69 +19,142 @@ function safeIlike(text: string): string {
     .trim();
 }
 
+/** Colonne absente (table recréée sans `name` / `nom`, cache PostgREST, etc.) */
+function isMissingColumnError(err: PostgrestError | null): boolean {
+  if (!err) return false;
+  const msg = err.message ?? "";
+  return (
+    err.code === "42703" ||
+    err.code === "PGRST204" ||
+    /does not exist/i.test(msg) ||
+    /schema cache/i.test(msg)
+  );
+}
+
+function dedupeById(rows: FoodItem[]): FoodItem[] {
+  const seen = new Set<string>();
+  const out: FoodItem[] = [];
+  for (const r of rows) {
+    if (seen.has(r.id)) continue;
+    seen.add(r.id);
+    out.push(r);
+  }
+  return out;
+}
+
+/**
+ * Recherche sur `name`, puis sur `nom` si la colonne existe — fusion et dédoublonnage.
+ * N'utilise pas `.or(\`…\`)` en chaîne brute : les espaces cassent le parseur PostgREST.
+ */
 export async function searchFoods(
   client: Client,
   query: string,
   limit = 20,
 ): Promise<FoodItem[]> {
-  const q = safeIlike(query);
+  const q = safeSearchToken(query);
   if (q.length === 0) return [];
-  const { data, error } = await client
-    .from("food_items")
-    .select("*")
-    .or(`name.ilike.%${q}%,nom.ilike.%${q}%`)
-    .limit(limit);
-  if (error) throw error;
-  return (data ?? []) as FoodItem[];
+
+  const pattern = `%${escapeIlike(q)}%`;
+
+  let merged: FoodItem[] = [];
+
+  const byName = await client.from("food_items").select("*").ilike("name", pattern).limit(limit);
+  if (byName.error) {
+    if (!isMissingColumnError(byName.error)) throw byName.error;
+  } else {
+    merged = [...((byName.data ?? []) as FoodItem[])];
+  }
+
+  const byNom = await client.from("food_items").select("*").ilike("nom", pattern).limit(limit);
+
+  if (byNom.error) {
+    if (!isMissingColumnError(byNom.error)) throw byNom.error;
+  } else if (byNom.data?.length) {
+    merged = dedupeById([...merged, ...(byNom.data as FoodItem[])]);
+  }
+
+  return merged.slice(0, limit);
+}
+
+async function firstMatchBySubstring(client: Client, term: string, limit: number): Promise<FoodItem | null> {
+  const pattern = `%${escapeIlike(term)}%`;
+
+  const byName = await client.from("food_items").select("*").ilike("name", pattern).limit(limit);
+
+  if (byName.error) {
+    if (!isMissingColumnError(byName.error)) throw byName.error;
+  } else {
+    const nameRows = (byName.data ?? []) as FoodItem[];
+    if (nameRows.length > 0) return nameRows[0]!;
+  }
+
+  const byNom = await client.from("food_items").select("*").ilike("nom", pattern).limit(limit);
+
+  if (byNom.error) {
+    if (isMissingColumnError(byNom.error)) return null;
+    throw byNom.error;
+  }
+
+  const nomRows = (byNom.data ?? []) as FoodItem[];
+  return nomRows.length > 0 ? nomRows[0]! : null;
+}
+
+async function firstExactCaseInsensitive(client: Client, raw: string): Promise<FoodItem | null> {
+  const lit = escapeIlike(raw);
+
+  const byName = await client.from("food_items").select("*").ilike("name", lit).limit(1);
+
+  if (byName.error) {
+    if (!isMissingColumnError(byName.error)) throw byName.error;
+  } else {
+    const n = (byName.data ?? []) as FoodItem[];
+    if (n.length > 0) return n[0]!;
+  }
+
+  const byNom = await client.from("food_items").select("*").ilike("nom", lit).limit(1);
+
+  if (byNom.error) {
+    if (isMissingColumnError(byNom.error)) return null;
+    throw byNom.error;
+  }
+
+  const rows = (byNom.data ?? []) as FoodItem[];
+  return rows.length > 0 ? rows[0]! : null;
 }
 
 /**
  * Associe un libellé IA au meilleur aliment de `food_items`.
- * Stratégie par priorité décroissante :
- *  1. Correspondance exacte (insensible à la casse)
- *  2. Libellé complet en sous-chaîne
- *  3. Premier token significatif (> 3 caractères) en sous-chaîne
- *  4. Tokens suivants, du plus long au plus court
+ * 1. Égalité « naturelle » via ILIKE sans wildcard (chaîne échappée)
+ * 2. Sous-chaîne sur le libellé complet puis tokens (plus long → plus court)
  */
 export async function findBestFoodMatch(
   client: Client,
   aiLabel: string,
 ): Promise<FoodItem | null> {
-  const raw = safeIlike(aiLabel);
+  const raw = safeSearchToken(aiLabel);
   if (!raw) return null;
 
-  // 1. Exact match
-  const exact = await client
-    .from("food_items")
-    .select("*")
-    .or(`name.ilike.${raw},nom.ilike.${raw}`)
-    .limit(1);
-  if (!exact.error && exact.data && exact.data.length > 0) {
-    return exact.data[0] as FoodItem;
-  }
+  const exact = await firstExactCaseInsensitive(client, raw);
+  if (exact) return exact;
 
-  // 2. Full label substring, then individual tokens (longest first)
   const tokens = raw
     .split(/[\s,;-]+/)
-    .map(safeIlike)
+    .map(safeSearchToken)
     .filter((w) => w.length > 3);
 
-  // Deduplicate preserving order
   const seen = new Set<string>();
   const terms: string[] = [];
   for (const t of [raw, ...tokens.sort((a, b) => b.length - a.length)]) {
     const k = t.toLowerCase();
-    if (!seen.has(k) && t.length > 0) { seen.add(k); terms.push(t); }
+    if (!seen.has(k) && t.length > 0) {
+      seen.add(k);
+      terms.push(t);
+    }
   }
 
   for (const term of terms) {
-    const { data, error } = await client
-      .from("food_items")
-      .select("*")
-      .or(`name.ilike.%${term}%,nom.ilike.%${term}%`)
-      .limit(5);
-    if (error) throw error;
-    if (data && data.length > 0) return data[0] as FoodItem;
+    const hit = await firstMatchBySubstring(client, term, 5);
+    if (hit) return hit;
   }
 
   return null;

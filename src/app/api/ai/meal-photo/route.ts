@@ -46,6 +46,10 @@ export async function POST(request: Request) {
     return NextResponse.json(payload);
   } catch (err) {
     console.error("[api/ai/meal-photo]", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const message =
+      err instanceof Error ? err.message : typeof err === "string" ? err : "Server error";
+    const safe =
+      message.length > 280 ? `${message.slice(0, 277)}…` : message;
+    return NextResponse.json({ error: safe }, { status: 500 });
   }
 }
