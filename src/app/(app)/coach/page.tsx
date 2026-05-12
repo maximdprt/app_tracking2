@@ -50,7 +50,7 @@ export default function CoachPage() {
         subtitle="Synthèse intelligente et conseils personnalisés"
         actions={
           messages.length > 0 ? (
-            <Button variant="ghost" size="sm" onClick={clear}>
+            <Button variant="ghost" size="sm" onClick={() => void clear()}>
               Effacer la conversation
             </Button>
           ) : undefined

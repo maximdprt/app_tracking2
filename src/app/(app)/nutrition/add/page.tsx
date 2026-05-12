@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, X, Plus, ChevronLeft, Camera, Heart, Clock, Sparkles } from "lucide-react";
+import { Search, X, Plus, ChevronLeft, Camera, Heart, Clock, Sparkles, Barcode } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -22,6 +22,7 @@ import { createMealWithIngredients } from "@/services/supabase/queries/meals";
 import { MEAL_TYPES } from "@/constants/meal-types";
 import { ROUTES } from "@/constants/routes";
 import { toUserMessage } from "@/lib/errors";
+import { openFoodFactsProductToFoodItem } from "@/lib/open-food-facts/map-product";
 import { macrosFromGrams, per100gMacrosFromFoodItem } from "@/utils/nutrition";
 import { useFoodSearch, useRecentFoods } from "@/hooks/useFoodSearch";
 import { useFoodFavorites } from "@/hooks/useFoodFavorites";
@@ -45,6 +46,8 @@ export default function AddMealPage() {
   const [pendingGrams, setPendingGrams] = useState(100);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [createCustomOpen, setCreateCustomOpen] = useState(false);
+  const [barcode, setBarcode] = useState("");
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
 
   const foodsQuery = useFoodSearch(query);
   const recentsQuery = useRecentFoods(8);
@@ -89,7 +92,9 @@ export default function AddMealPage() {
       {
         id: crypto.randomUUID(),
         name: pendingFood.name ?? pendingFood.nom ?? "Aliment",
-        foodItemId: pendingFood.id.startsWith("custom_") ? null : pendingFood.id,
+        foodItemId: pendingFood.id.startsWith("custom_") || pendingFood.id.startsWith("OPENFOODFACTS:")
+          ? null
+          : pendingFood.id,
         grams: pendingGrams,
         caloriesPer100g: per100.calories,
         proteinPer100g: per100.protein,
@@ -100,6 +105,37 @@ export default function AddMealPage() {
     setPendingFood(null);
     setPendingGrams(100);
     setQuery("");
+  }
+
+  async function lookupBarcode(): Promise<void> {
+    const code = barcode.replace(/\D/g, "");
+    if (code.length < 8) {
+      toast.error("Code-barres trop court.");
+      return;
+    }
+    setBarcodeLoading(true);
+    try {
+      const res = await fetch(`/api/open-food-facts/${encodeURIComponent(code)}`);
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        code?: string;
+        product?: unknown;
+      };
+      if (!res.ok) {
+        toast.error(body.error ?? "Erreur");
+        return;
+      }
+      const food = openFoodFactsProductToFoodItem(body.code ?? code, body.product ?? null);
+      if (!food) {
+        toast.error("Données nutritionnelles insuffisantes.");
+        return;
+      }
+      selectFood(food);
+      setBarcode("");
+      toast.success(`${food.name ?? food.nom} — importé depuis Open Food Facts`);
+    } finally {
+      setBarcodeLoading(false);
+    }
   }
 
   const saveMutation = useMutation({
@@ -199,6 +235,31 @@ export default function AddMealPage() {
         options={MEAL_TYPES.map((m) => ({ value: m.id, label: m.label, icon: m.icon }))}
         columns={4}
       />
+
+      <Card className="border-[var(--lift-border-subtle)]">
+        <CardHeader>
+          <CardTitle className="text-base">Code-barres · Open Food Facts</CardTitle>
+        </CardHeader>
+        <div className="flex flex-col gap-3 px-6 pb-6 sm:flex-row sm:items-center">
+          <Input
+            value={barcode}
+            onChange={(e) => setBarcode(e.target.value)}
+            placeholder="EAN‑8 … EAN‑13"
+            inputMode="numeric"
+            autoComplete="off"
+            className="sm:flex-1"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            loading={barcodeLoading}
+            onClick={() => void lookupBarcode()}
+          >
+            <Barcode className="h-4 w-4" />
+            Chercher
+          </Button>
+        </div>
+      </Card>
 
       {/* Mode tabs */}
       <Tabs<InputMode>

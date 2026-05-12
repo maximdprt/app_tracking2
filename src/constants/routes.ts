@@ -15,6 +15,7 @@ export const ROUTES = {
   trainingProgress: "/training/progress",
   stats: "/stats",
   habits: "/habits",
+  habitsMatrix: "/habits/matrix",
   coach: "/coach",
   profile: "/profile",
 } as const;

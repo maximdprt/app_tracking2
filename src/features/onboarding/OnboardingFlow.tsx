@@ -26,6 +26,7 @@ import { createClient } from "@/services/supabase/client";
 import { upsertProfile } from "@/services/supabase/queries/profile";
 import { AppError, toUserMessage } from "@/lib/errors";
 import { ROUTES } from "@/constants/routes";
+import { writeAnalyticsConsentFlag } from "@/lib/consent/analytics-consent";
 
 const INITIAL: OnboardingFormValues = {
   sex: "male",
@@ -46,6 +47,8 @@ export function OnboardingFlow() {
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<OnboardingFormValues>(INITIAL);
   const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [analyticsOptIn, setAnalyticsOptIn] = useState(false);
 
   const bmr = calculateBMR(values.weight, values.height, values.age, values.sex);
   const tdee = calculateTDEE(bmr, calculateActivityLevel(values.trainingFrequency));
@@ -92,6 +95,10 @@ export function OnboardingFlow() {
 
   async function submit() {
     try {
+      if (!termsAccepted) {
+        toast.error("Tu dois accepter les conditions pour continuer.");
+        return;
+      }
       setLoading(true);
       const supabase = createClient();
       const {
@@ -117,6 +124,15 @@ export function OnboardingFlow() {
         target_fats: macros.fats,
         experience_level: values.trainingFrequency >= 5 ? "intermediate" : "beginner",
       });
+
+      writeAnalyticsConsentFlag(analyticsOptIn);
+
+      await supabase.from("consent_log").insert([
+        { user_id: user.id, consent_type: "terms_lift_v3", granted: true },
+        ...(analyticsOptIn
+          ? [{ user_id: user.id, consent_type: "analytics_product", granted: true }]
+          : []),
+      ]);
 
       toast.success("Profil enregistré");
       router.replace(ROUTES.dashboard);
@@ -166,27 +182,53 @@ export function OnboardingFlow() {
         </AnimatePresence>
       </div>
 
-      <footer className="mt-8 flex justify-between gap-3">
-        <Button
-          variant="ghost"
-          onClick={prev}
-          disabled={step === 0 || loading}
-          className={step === 0 ? "invisible" : ""}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Précédent
-        </Button>
-        {step < TOTAL_STEPS - 1 ? (
-          <Button onClick={next}>
-            Suivant
-            <ArrowRight className="h-4 w-4" />
+      <footer className="mt-8 space-y-4">
+        {step === TOTAL_STEPS - 1 ? (
+          <div className="space-y-3 rounded-xl border border-border bg-surface-2 p-4 text-sm">
+            <label className="flex gap-3">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-1 accent-primary"
+              />
+              <span>
+                J&apos;accepte les conditions Lift et comprends comment mes données sont traitées (RGPD).
+              </span>
+            </label>
+            <label className="flex gap-3 text-text-soft">
+              <input
+                type="checkbox"
+                checked={analyticsOptIn}
+                onChange={(e) => setAnalyticsOptIn(e.target.checked)}
+                className="mt-1 accent-primary"
+              />
+              <span>Je souhaite l&apos;aide au produit anonymisée (PostHog UE, optionnel).</span>
+            </label>
+          </div>
+        ) : null}
+        <div className="flex justify-between gap-3">
+          <Button
+            variant="ghost"
+            onClick={prev}
+            disabled={step === 0 || loading}
+            className={step === 0 ? "invisible" : ""}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Précédent
           </Button>
-        ) : (
-          <Button onClick={submit} loading={loading} size="lg">
-            Démarrer
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        )}
+          {step < TOTAL_STEPS - 1 ? (
+            <Button onClick={next}>
+              Suivant
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button onClick={() => void submit()} loading={loading} size="lg">
+              Démarrer
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </footer>
     </div>
   );

@@ -3,14 +3,14 @@
 import type React from "react";
 import Link from "next/link";
 import { Flame, Plus, Sparkles, Zap } from "lucide-react";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { InsightsFeed } from "@/features/dashboard/InsightsFeed";
+import { WeeklyCompareCard } from "@/features/dashboard/WeeklyCompareCard";
 import { StatCard } from "@/components/shared/StatCard";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { ProgressRing } from "@/components/shared/ProgressRing";
+import { MacroRing } from "@/design/components";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { InsightsFeed } from "@/features/dashboard/InsightsFeed";
 import { useToday } from "@/hooks/useToday";
 import { useSleep, useSteps, useLatestWeight } from "@/hooks/useDaily";
 import { useStreaks } from "@/hooks/useStreaks";
@@ -22,7 +22,7 @@ import { useUser } from "@/hooks/useUser";
 import { getWeightHistory } from "@/services/supabase/queries/stats";
 
 export default function DashboardPage() {
-  const { profile, totals, targets, sessions, isLoading } = useToday();
+  const { totals, targets, sessions, isLoading } = useToday();
   const { data: user } = useUser();
   const today = todayISO();
   const sleepQuery = useSleep(today);
@@ -44,9 +44,17 @@ export default function DashboardPage() {
   if (isLoading) return <DashboardSkeleton />;
 
   const calsRemaining = Math.max(0, targets.calories - totals.calories);
-  const todaySession = sessions.find((s) => s.session_date === today);
-  const firstName = profile?.user_id?.slice(0, 2).toUpperCase() ?? "";
 
+  const greetingFromEmail = (email: string | undefined): string => {
+    if (!email || !email.includes("@")) return "";
+    const raw = email.split("@")[0]!.split(/[._-]/)[0] ?? "";
+    if (!raw) return "";
+    return raw.slice(0, 1).toUpperCase() + raw.slice(1).toLowerCase();
+  };
+
+  const displayFirstName = greetingFromEmail(user?.email);
+
+  const todaySession = sessions.find((s) => s.session_date === today);
   const todaySleep = sleepQuery.data;
   const todaySteps = stepsQuery.data;
   const latestWeight = latestWeightQuery.data;
@@ -62,59 +70,28 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={`Bonjour${firstName ? `, ${firstName}` : ""}`}
-        subtitle={formatDateRelative(today)}
-      />
+      <header className="mb-2 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--lift-border-subtle)] pb-4">
+        <div>
+          <h1 className="lift-display-small text-xl sm:text-2xl">
+            Salut{displayFirstName ? ` ${displayFirstName}` : ""}
+          </h1>
+          <p className="mt-1 text-sm text-muted">{formatDateRelative(today)}</p>
+        </div>
+      </header>
 
-      {/* Hero grid */}
+      {/* Hero — MacroRing */}
       <div className="grid gap-4 lg:grid-cols-12">
-        {/* Calories ring — large */}
-        <Card className="lg:col-span-5">
+        <Card className="border-[var(--lift-border-subtle)] bg-[var(--lift-bg-card)] lg:col-span-12 md-elevation-1">
           <CardHeader>
             <div>
-              <CardTitle>Calories aujourd'hui</CardTitle>
+              <CardTitle>Macros du jour</CardTitle>
               <CardDescription>
                 Reste {Math.round(calsRemaining)} kcal · objectif {targets.calories}
               </CardDescription>
             </div>
           </CardHeader>
-          <div className="flex items-center justify-center py-2">
-            <ProgressRing
-              value={totals.calories}
-              max={targets.calories}
-              size={180}
-              stroke={14}
-              label={`${Math.round(totals.calories)}`}
-              sublabel="kcal"
-            />
-          </div>
-        </Card>
-
-        {/* Macros 3 rings */}
-        <Card className="lg:col-span-7">
-          <CardHeader>
-            <CardTitle>Macros</CardTitle>
-          </CardHeader>
-          <div className="grid grid-cols-3 gap-3">
-            <MacroBlock
-              label="Protéines"
-              value={totals.protein}
-              max={targets.protein}
-              color="var(--color-protein)"
-            />
-            <MacroBlock
-              label="Glucides"
-              value={totals.carbs}
-              max={targets.carbs}
-              color="var(--color-carbs)"
-            />
-            <MacroBlock
-              label="Lipides"
-              value={totals.fats}
-              max={targets.fats}
-              color="var(--color-fats)"
-            />
+          <div className="py-4">
+            <MacroRing totals={totals} targets={targets} />
           </div>
         </Card>
 
@@ -246,6 +223,8 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      <WeeklyCompareCard />
+
       {/* Streaks row */}
       {(streaks?.food_log_current ?? 0) > 0 || (streaks?.workout_current ?? 0) > 0 ? (
         <div className="flex flex-wrap gap-3">
@@ -302,34 +281,6 @@ export default function DashboardPage() {
           </Button>
         </Link>
       </div>
-    </div>
-  );
-}
-
-function MacroBlock({
-  label,
-  value,
-  max,
-  color,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  color: string;
-}) {
-  return (
-    <div className="flex flex-col items-center text-center">
-      <ProgressRing
-        value={value}
-        max={max || 1}
-        color={color}
-        size={88}
-        stroke={8}
-        label={`${Math.round(value)}`}
-        sublabel="g"
-      />
-      <p className="mt-2 text-xs text-text-soft">{label}</p>
-      <p className="font-mono text-[10px] text-muted">/ {Math.round(max)} g</p>
     </div>
   );
 }

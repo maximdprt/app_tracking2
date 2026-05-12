@@ -61,6 +61,32 @@ export async function deleteMeal(client: Client, mealId: string): Promise<void> 
   if (error) throw error;
 }
 
+/** Sommes macros sur une plage de jours `[start, end]` (ISO yyyy-MM-dd). */
+export async function getMealTotalsInDateRange(
+  client: Client,
+  userId: string,
+  startInclusive: string,
+  endInclusive: string,
+): Promise<{ calories: number; protein: number; carbs: number; fats: number }> {
+  const { data, error } = await client
+    .from("meals")
+    .select("total_calories,total_protein,total_carbs,total_fats")
+    .eq("user_id", userId)
+    .gte("meal_date", startInclusive)
+    .lte("meal_date", endInclusive);
+  if (error) throw error;
+  const rows = data ?? [];
+  return rows.reduce(
+    (acc, r) => ({
+      calories: acc.calories + Number(r.total_calories ?? 0),
+      protein: acc.protein + Number(r.total_protein ?? 0),
+      carbs: acc.carbs + Number(r.total_carbs ?? 0),
+      fats: acc.fats + Number(r.total_fats ?? 0),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fats: 0 },
+  );
+}
+
 export async function deleteIngredient(client: Client, ingredientId: string): Promise<void> {
   const { error } = await client.from("meal_ingredients").delete().eq("id", ingredientId);
   if (error) throw error;

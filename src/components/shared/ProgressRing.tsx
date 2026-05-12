@@ -22,7 +22,7 @@ export function ProgressRing({
   size = 120,
   stroke = 10,
   color = "var(--color-primary)",
-  trackColor = "rgba(255,255,255,0.06)",
+  trackColor,
   showLabel = true,
   label,
   sublabel,
@@ -42,7 +42,7 @@ export function ProgressRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={trackColor}
+          stroke={trackColor ?? "color-mix(in srgb, var(--lift-text-primary) 9%, transparent)"}
           strokeWidth={stroke}
           fill="none"
         />

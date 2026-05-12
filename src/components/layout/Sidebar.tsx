@@ -7,6 +7,7 @@ import {
   BarChart3,
   Bot,
   Dumbbell,
+  Grid3x3,
   Home,
   Salad,
   Settings2,
@@ -22,6 +23,7 @@ const links = [
   { href: ROUTES.training, label: "Entraînement", icon: Dumbbell },
   { href: ROUTES.stats, label: "Statistiques", icon: BarChart3 },
   { href: ROUTES.habits, label: "Habitudes", icon: Sparkles },
+  { href: ROUTES.habitsMatrix, label: "Routine (matrice)", icon: Grid3x3 },
   { href: ROUTES.coach, label: "Coach IA", icon: Bot },
 ];
 

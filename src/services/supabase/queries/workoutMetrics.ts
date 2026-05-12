@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
-import { estimateOneRepMax } from "@/lib/nutrition/calculations";
+import { e1RMCombined } from "@/lib/nutrition/e1rm";
 
 type Client = SupabaseClient<Database>;
 // Tables not yet in generated types — bypass strict typing until migration applied
@@ -54,7 +54,7 @@ export async function upsertWorkoutMetrics(
 
   // Best set by e1RM
   const ranked = completedSets
-    .map((s) => ({ ...s, e1rm: estimateOneRepMax(s.weight, s.reps) }))
+    .map((s) => ({ ...s, e1rm: e1RMCombined(s.weight, s.reps).value }))
     .sort((a, b) => b.e1rm - a.e1rm);
 
   const best = ranked[0]!;

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { LogOut, Trash2 } from "lucide-react";
+import { Download, LogOut, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
@@ -14,6 +14,11 @@ import { Label } from "@/components/ui/Label";
 import { Avatar } from "@/components/ui/Avatar";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import {
+  readAnalyticsConsentFlag,
+  writeAnalyticsConsentFlag,
+} from "@/lib/consent/analytics-consent";
 import { ProgressRing } from "@/components/shared/ProgressRing";
 import { AnimatedNumber } from "@/components/shared/AnimatedNumber";
 import { useUser } from "@/hooks/useUser";
@@ -39,6 +44,11 @@ export default function ProfilePage() {
   const profile = profileQuery.data;
 
   const [values, setValues] = useState<OnboardingFormValues | null>(null);
+  const [allowAnalytics, setAllowAnalytics] = useState(false);
+
+  useEffect(() => {
+    setAllowAnalytics(readAnalyticsConsentFlag());
+  }, []);
 
   useEffect(() => {
     if (!profile) return;
@@ -94,6 +104,65 @@ export default function ProfilePage() {
     },
     onError: (err) => toast.error(toUserMessage(err)),
   });
+
+  const purgeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/me/purge", { method: "POST" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? "Échec de la suppression des données.");
+      }
+    },
+    onSuccess: async () => {
+      toast.success("Données effacées.");
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.replace(ROUTES.login);
+      router.refresh();
+    },
+    onError: (err) => toast.error(toUserMessage(err)),
+  });
+
+  async function persistAnalyticsConsent(next: boolean) {
+    if (!user?.id) return;
+    writeAnalyticsConsentFlag(next);
+    setAllowAnalytics(next);
+    try {
+      const sb = createClient();
+      await sb.from("consent_log").insert({
+        user_id: user.id,
+        consent_type: "analytics_product",
+        granted: next,
+      });
+      toast.success(
+        next
+          ? "Préférence enregistrée — la page recharge pour charger l’analytics."
+          : "Analytics désactivées.",
+      );
+      if (next) window.location.reload();
+    } catch (err) {
+      toast.error(toUserMessage(err));
+    }
+  }
+
+  async function downloadDataExport() {
+    try {
+      const res = await fetch("/api/me/export");
+      if (!res.ok) throw new Error("Export indisponible");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "lift-export.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Export téléchargé");
+    } catch (err) {
+      toast.error(toUserMessage(err));
+    }
+  }
 
   function update<K extends keyof OnboardingFormValues>(key: K, value: OnboardingFormValues[K]) {
     if (!values) return;
@@ -283,6 +352,37 @@ export default function ProfilePage() {
         </Card>
       ) : null}
 
+      {/* Confidentialité */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Confidentialité</CardTitle>
+          <CardDescription>Thème, export RGPD et télémétrie optionnelle.</CardDescription>
+        </CardHeader>
+        <div className="space-y-5 px-6 pb-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <ThemeToggle />
+          </div>
+          <label className="flex cursor-pointer items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1 accent-primary"
+              checked={allowAnalytics}
+              onChange={(e) => void persistAnalyticsConsent(e.target.checked)}
+            />
+            <span className="text-text-soft">
+              J’accepte l’analytics produit anonymisée (PostHog UE, activée uniquement après
+              rechargement).
+            </span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={() => void downloadDataExport()}>
+              <Download className="h-4 w-4" />
+              Télécharger mes données (JSON)
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       {/* Account */}
       <Card>
         <CardHeader>
@@ -294,16 +394,14 @@ export default function ProfilePage() {
             Déconnexion
           </Button>
           <ConfirmDialog
-            title="Supprimer mon compte ?"
-            description="Cette action est irréversible. Toutes tes données seront perdues."
-            confirmLabel="Supprimer"
-            onConfirm={() => {
-              toast.info("Suppression complète disponible bientôt.");
-            }}
+            title="Supprimer toutes mes données Lift ?"
+            description="Ton compte restera mais repas, séances, profil détaillé et préférences locales seront effacés. Pour supprimer définitivement le compte chez ton hébergeur (Auth), utilise l’outil de ton fournisseur."
+            confirmLabel={purgeMutation.isPending ? "…" : "Tout effacer"}
+            onConfirm={() => purgeMutation.mutate()}
             trigger={
-              <Button variant="danger">
+              <Button variant="danger" loading={purgeMutation.isPending}>
                 <Trash2 className="h-4 w-4" />
-                Supprimer mon compte
+                Effacer mes données Lift
               </Button>
             }
           />

@@ -36,7 +36,7 @@ export function CoachChatPanel() {
             {messages.length > 0 ? (
               <button
                 type="button"
-                onClick={() => clear()}
+                onClick={() => void clear()}
                 title="Nouvelle conversation"
                 className="rounded-full p-2.5 text-muted transition-colors hover:bg-surface-2 hover:text-danger"
                 aria-label="Effacer la conversation"
