@@ -73,7 +73,7 @@ Si tu ne reconnais pas un aliment, n'invente pas — omets-le.`;
           role: "user",
           content: [
             { type: "text", text: "Analyse cette photo de repas." },
-            { type: "image_url", image_url: `data:${mimeType};base64,${imageBase64}` },
+            { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
           ],
         },
       ],

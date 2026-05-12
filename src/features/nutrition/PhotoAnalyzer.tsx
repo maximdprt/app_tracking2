@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Loader2, Plus, X } from "lucide-react";
+import { Camera, CheckCircle2, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +14,7 @@ import { createClient } from "@/services/supabase/client";
 import { searchFoods } from "@/services/supabase/queries/foods";
 import { createMealWithIngredients } from "@/services/supabase/queries/meals";
 import { uploadMealPhoto } from "@/services/supabase/queries/storage";
+import { useDebounce } from "@/hooks/useDebounce";
 import { ROUTES } from "@/constants/routes";
 import { toUserMessage } from "@/lib/errors";
 import { macrosFromGrams, per100gMacrosFromFoodItem } from "@/utils/nutrition";
@@ -25,7 +26,7 @@ interface PhotoAnalyzerProps {
   mealType: MealType;
 }
 
-type Phase = "upload" | "analyzing" | "review" | "saving";
+type Phase = "upload" | "analyzing" | "review";
 
 interface IngredientRow {
   key: string;
@@ -34,7 +35,6 @@ interface IngredientRow {
   estimatedGrams: number;
   confidence: number;
   food: FoodItem | null;
-  loadingFood: boolean;
 }
 
 export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
@@ -52,22 +52,20 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
   const handleFileChange = useCallback((file: File | null) => {
     if (!file) return;
     if (file.size > 8 * 1024 * 1024) {
-      toast.error("Photo trop lourde (max 8MB)");
+      toast.error("Photo trop lourde (max 8 MB)");
       return;
     }
     if (!file.type.startsWith("image/")) {
-      toast.error("Fichier non supporté, choisis une image");
+      toast.error("Fichier non supporté — choisis une image");
       return;
     }
     setPhotoFile(file);
-    const url = URL.createObjectURL(file);
-    setPhotoPreview(url);
+    setPhotoPreview(URL.createObjectURL(file));
   }, []);
 
   async function handleAnalyze() {
     if (!photoFile) return;
     setPhase("analyzing");
-
     try {
       const formData = new FormData();
       formData.append("photo", photoFile);
@@ -80,26 +78,22 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
       const result = (await res.json()) as MealPhotoAnalysisApiResponse;
 
       if (result.ingredients.length === 0) {
-        toast.warning(
-          "Aucun aliment détecté, essaie une photo plus claire ou utilise la recherche manuelle",
-        );
+        toast.warning("Aucun aliment détecté — essaie une photo plus claire ou utilise la recherche manuelle");
         setPhase("upload");
         return;
       }
 
       setAnalysisResult(result);
-
-      // Lignes pré-remplies avec les `food_items` résolus côté serveur (Supabase)
-      const rows: IngredientRow[] = result.ingredients.map((ing) => ({
-        key: crypto.randomUUID(),
-        name: ing.name,
-        grams: ing.estimatedGrams,
-        estimatedGrams: ing.estimatedGrams,
-        confidence: ing.confidence,
-        food: ing.food_item,
-        loadingFood: false,
-      }));
-      setIngredients(rows);
+      setIngredients(
+        result.ingredients.map((ing) => ({
+          key: crypto.randomUUID(),
+          name: ing.name,
+          grams: ing.estimatedGrams,
+          estimatedGrams: ing.estimatedGrams,
+          confidence: ing.confidence,
+          food: ing.food_item,
+        })),
+      );
       setPhase("review");
     } catch (err) {
       toast.error(toUserMessage(err));
@@ -107,12 +101,8 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
     }
   }
 
-  function updateIngredientName(key: string, name: string) {
-    setIngredients((prev) => prev.map((r) => (r.key === key ? { ...r, name } : r)));
-  }
-
-  function updateIngredientGrams(key: string, grams: number) {
-    setIngredients((prev) => prev.map((r) => (r.key === key ? { ...r, grams } : r)));
+  function updateIngredient(key: string, patch: Partial<Omit<IngredientRow, "key">>) {
+    setIngredients((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }
 
   function removeIngredient(key: string) {
@@ -122,15 +112,7 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
   function addManualIngredient() {
     setIngredients((prev) => [
       ...prev,
-      {
-        key: crypto.randomUUID(),
-        name: "",
-        grams: 100,
-        estimatedGrams: 100,
-        confidence: 1,
-        food: null,
-        loadingFood: false,
-      },
+      { key: crypto.randomUUID(), name: "", grams: 100, estimatedGrams: 100, confidence: 1, food: null },
     ]);
   }
 
@@ -151,10 +133,8 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Unauthorized");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié — reconnecte-toi");
 
       let photoPath: string | null = null;
       if (photoFile) {
@@ -162,13 +142,13 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
       }
 
       const mealIngredients = ingredients
-        .filter((r) => r.food !== null)
+        .filter((r): r is IngredientRow & { food: FoodItem } => r.food !== null && r.grams > 0)
         .map((row) => {
-          const m = macrosFromGrams(row.grams, per100gMacrosFromFoodItem(row.food!));
+          const m = macrosFromGrams(row.grams, per100gMacrosFromFoodItem(row.food));
           return {
             user_id: user.id,
-            food_item_id: row.food!.id,
-            custom_food_name: row.name,
+            food_item_id: row.food.id,
+            custom_food_name: row.name || (row.food.name ?? row.food.nom ?? "Aliment"),
             grams: row.grams,
             calories: m.calories,
             protein: m.protein,
@@ -176,6 +156,8 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
             fats: m.fats,
           };
         });
+
+      if (mealIngredients.length === 0) throw new Error("Aucun ingrédient valide à enregistrer");
 
       await createMealWithIngredients(
         supabase,
@@ -200,6 +182,7 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
     onError: (err) => toast.error(toUserMessage(err)),
   });
 
+  /* ── Phase: upload ─────────────────────────────────────────────── */
   if (phase === "upload") {
     return (
       <div className="space-y-4">
@@ -222,17 +205,11 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
 
           {photoPreview ? (
             <div className="relative overflow-hidden rounded-xl">
-              <img
-                src={photoPreview}
-                alt="Aperçu"
-                className="h-64 w-full object-cover"
-              />
+              <img src={photoPreview} alt="Aperçu" className="h-64 w-full object-cover" />
               <button
                 type="button"
-                onClick={() => {
-                  setPhotoFile(null);
-                  setPhotoPreview(null);
-                }}
+                aria-label="Supprimer la photo"
+                onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
                 className="absolute right-2 top-2 rounded-full bg-surface/80 p-1 text-text backdrop-blur-sm hover:bg-surface"
               >
                 <X className="h-4 w-4" />
@@ -260,6 +237,7 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
     );
   }
 
+  /* ── Phase: analyzing ──────────────────────────────────────────── */
   if (phase === "analyzing") {
     return (
       <Card>
@@ -267,9 +245,7 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <div>
             <p className="font-medium">Analyse en cours…</p>
-            <p className="mt-1 text-sm text-text-soft">
-              Je détecte les ingrédients dans ta photo
-            </p>
+            <p className="mt-1 text-sm text-text-soft">Je détecte les ingrédients dans ta photo</p>
           </div>
           <div className="w-full space-y-2">
             <Skeleton className="h-4" />
@@ -281,34 +257,28 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
     );
   }
 
+  /* ── Phase: review ─────────────────────────────────────────────── */
+  const validCount = ingredients.filter((r) => r.food && r.grams > 0).length;
+
   return (
     <div className="space-y-4">
-      {/* Photo preview */}
       {photoPreview ? (
         <div className="overflow-hidden rounded-xl">
-          <img src={photoPreview} alt="Repas" className="h-40 w-full object-cover" />
+          <img src={photoPreview} alt="Repas analysé" className="h-40 w-full object-cover" />
         </div>
       ) : null}
 
-      {/* Description */}
       {analysisResult?.description ? (
         <p className="text-sm font-medium">{analysisResult.description}</p>
       ) : null}
 
-      {/* Ingredient rows */}
       <div className="space-y-3">
         {ingredients.map((row) => (
           <IngredientCard
             key={row.key}
             row={row}
-            onNameChange={(name) => updateIngredientName(row.key, name)}
-            onGramsChange={(grams) => updateIngredientGrams(row.key, grams)}
+            onChange={(patch) => updateIngredient(row.key, patch)}
             onRemove={() => removeIngredient(row.key)}
-            onFoodChange={(food) =>
-              setIngredients((prev) =>
-                prev.map((r) => (r.key === row.key ? { ...r, food } : r)),
-              )
-            }
           />
         ))}
       </div>
@@ -318,15 +288,15 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
         Ajouter un ingrédient manuellement
       </Button>
 
-      {/* Totals */}
       {totals.calories > 0 ? (
         <Card>
           <div className="flex items-baseline justify-between">
             <span className="text-xs text-text-soft">Total estimé</span>
-            <span className="font-mono text-2xl font-semibold">
-              {Math.round(totals.calories)} kcal
-            </span>
+            <span className="font-mono text-2xl font-semibold">{Math.round(totals.calories)} kcal</span>
           </div>
+          <p className="mt-1 text-[10px] text-muted">
+            P {Math.round(totals.protein)}g · G {Math.round(totals.carbs)}g · L {Math.round(totals.fats)}g
+          </p>
           <MacroBar protein={totals.protein} carbs={totals.carbs} fats={totals.fats} />
         </Card>
       ) : null}
@@ -335,115 +305,197 @@ export function PhotoAnalyzer({ mealType }: PhotoAnalyzerProps) {
         size="lg"
         className="w-full"
         onClick={() => saveMutation.mutate()}
-        loading={saveMutation.isPending || phase === "saving"}
-        disabled={ingredients.filter((r) => r.food).length === 0}
+        loading={saveMutation.isPending}
+        disabled={validCount === 0}
       >
         Enregistrer le repas
+        {validCount > 0 ? ` (${validCount} ingrédient${validCount > 1 ? "s" : ""})` : ""}
       </Button>
     </div>
   );
 }
 
-function IngredientCard({
-  row,
-  onNameChange,
-  onGramsChange,
-  onRemove,
-  onFoodChange,
-}: {
+/* ── IngredientCard ─────────────────────────────────────────────── */
+
+interface IngredientCardProps {
   row: IngredientRow;
-  onNameChange: (name: string) => void;
-  onGramsChange: (grams: number) => void;
+  onChange: (patch: Partial<Omit<IngredientRow, "key">>) => void;
   onRemove: () => void;
-  onFoodChange: (food: FoodItem) => void;
-}) {
+}
+
+function IngredientCard({ row, onChange, onRemove }: IngredientCardProps) {
+  const [localName, setLocalName] = useState(row.name);
+  const [showSearch, setShowSearch] = useState(false);
+  const debouncedName = useDebounce(localName, 400);
+
+  // Sync parent name into local state when it changes externally (initial load)
+  useEffect(() => {
+    setLocalName(row.name);
+  }, [row.name]);
+
+  const foodSearchQuery = useQuery({
+    queryKey: ["foods-search", debouncedName],
+    enabled: showSearch && debouncedName.trim().length >= 2,
+    staleTime: 5 * 60 * 1000,
+    queryFn: () => searchFoods(createClient(), debouncedName.trim(), 6),
+  });
+
   const macros =
     row.food && row.grams > 0
       ? macrosFromGrams(row.grams, per100gMacrosFromFoodItem(row.food))
       : null;
 
-  // Auto-search query state
-  const [searchQuery, setSearchQuery] = useState(row.name);
-  const debouncedQuery = searchQuery;
+  function commitName(value: string) {
+    setLocalName(value);
+    onChange({ name: value });
+  }
 
-  const foodSearchQuery = useQuery({
-    queryKey: ["foods-search", debouncedQuery],
-    enabled: debouncedQuery.length >= 2,
-    staleTime: 300_000,
-    queryFn: async () => searchFoods(createClient(), debouncedQuery, 5),
-  });
+  function selectFood(food: FoodItem) {
+    onChange({ food });
+    setShowSearch(false);
+  }
 
   return (
     <Card>
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-2">
         <div className="flex-1 space-y-2">
+          {/* Name + grams row */}
           <div className="flex items-center gap-2">
             <Input
-              value={row.name}
-              onChange={(e) => {
-                onNameChange(e.target.value);
-                setSearchQuery(e.target.value);
-              }}
+              value={localName}
+              onChange={(e) => { setLocalName(e.target.value); onChange({ name: e.target.value }); }}
               placeholder="Nom de l'ingrédient"
               className="flex-1 text-sm"
             />
-          </div>
-
-          <div className="flex items-center gap-2">
             <Input
               type="number"
               value={row.grams}
-              onChange={(e) => onGramsChange(Number(e.target.value) || 0)}
+              onChange={(e) => onChange({ grams: Math.max(0, Number(e.target.value) || 0) })}
               min={0}
-              className="w-24 text-sm"
+              max={2000}
+              className="w-20 text-sm"
             />
-            <span className="text-xs text-text-soft">g</span>
+            <span className="shrink-0 text-xs text-text-soft">g</span>
           </div>
 
-          {row.loadingFood ? (
-            <Skeleton className="h-4 w-32" />
-          ) : row.food ? (
-            <p className="text-xs text-text-soft">
-              Base Supabase :{" "}
-              <span className="font-mono text-text">
-                {row.food.name ?? row.food.nom}
-              </span>
-              {macros ? (
-                <span className="ml-2 font-mono text-muted">
-                  {Math.round(macros.calories)} kcal · P{Math.round(macros.protein)} · G
-                  {Math.round(macros.carbs)} · L{Math.round(macros.fats)}
+          {/* Matched food info */}
+          {row.food ? (
+            <div className="flex items-center justify-between gap-2 rounded-lg bg-surface px-2 py-1">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <CheckCircle2 className="h-3 w-3 shrink-0 text-primary" />
+                <span className="truncate text-[11px] text-text-soft">
+                  {row.food.name ?? row.food.nom ?? "Aliment"}
                 </span>
-              ) : null}
-            </p>
+                {macros ? (
+                  <span className="shrink-0 font-mono text-[10px] text-muted">
+                    {Math.round(macros.calories)} kcal · P{Math.round(macros.protein)} · G{Math.round(macros.carbs)} · L{Math.round(macros.fats)}
+                  </span>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => { onChange({ food: null }); setShowSearch(true); }}
+                className="shrink-0 text-[10px] text-muted hover:text-text"
+                aria-label="Changer l'aliment"
+              >
+                Changer
+              </button>
+            </div>
           ) : (
             <div className="space-y-1">
-              <p className="text-xs text-warning">Aucune correspondance trouvée</p>
-              {foodSearchQuery.data && foodSearchQuery.data.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {foodSearchQuery.data.map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => onFoodChange(f)}
-                      className="rounded border border-border bg-surface px-2 py-0.5 text-[10px] hover:border-border-strong hover:text-text"
-                    >
-                      {f.name}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-warning">Aucune correspondance trouvée</p>
+                <button
+                  type="button"
+                  onClick={() => setShowSearch((v) => !v)}
+                  className="text-[10px] text-primary hover:underline"
+                >
+                  {showSearch ? "Fermer" : "Rechercher"}
+                </button>
+              </div>
+              {showSearch ? (
+                <SearchDropdown
+                  query={debouncedName}
+                  results={foodSearchQuery.data}
+                  loading={foodSearchQuery.isLoading}
+                  onSelect={selectFood}
+                  onQueryChange={commitName}
+                />
               ) : null}
             </div>
           )}
+
+          {/* Show search when user clicked "Changer" on a matched food */}
+          {row.food && showSearch ? (
+            <SearchDropdown
+              query={debouncedName}
+              results={foodSearchQuery.data}
+              loading={foodSearchQuery.isLoading}
+              onSelect={selectFood}
+              onQueryChange={commitName}
+            />
+          ) : null}
         </div>
 
         <button
           type="button"
           onClick={onRemove}
+          aria-label="Supprimer cet ingrédient"
           className="mt-1 rounded-lg p-1 text-muted hover:bg-surface-2 hover:text-danger"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
     </Card>
+  );
+}
+
+function SearchDropdown({
+  results,
+  loading,
+  onSelect,
+  onQueryChange,
+  query,
+}: {
+  query: string;
+  results: FoodItem[] | undefined;
+  loading: boolean;
+  onSelect: (food: FoodItem) => void;
+  onQueryChange: (q: string) => void;
+}) {
+  return (
+    <div className="space-y-1 rounded-xl border border-border bg-surface p-2">
+      <Input
+        value={query}
+        onChange={(e) => onQueryChange(e.target.value)}
+        placeholder="Rechercher un aliment…"
+        className="text-xs"
+        autoFocus
+      />
+      {loading ? (
+        <div className="space-y-1 pt-1">
+          <Skeleton className="h-7" />
+          <Skeleton className="h-7 w-4/5" />
+        </div>
+      ) : results && results.length > 0 ? (
+        <div className="max-h-40 overflow-y-auto space-y-0.5 pt-1">
+          {results.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => onSelect(f)}
+              className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-surface-2"
+            >
+              <span className="text-xs">{f.name ?? f.nom}</span>
+              <span className="font-mono text-[10px] text-muted">
+                {Math.round(per100gMacrosFromFoodItem(f).calories)} kcal/100g
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : query.trim().length >= 2 ? (
+        <p className="py-2 text-center text-[11px] text-muted">Aucun résultat pour « {query} »</p>
+      ) : null}
+    </div>
   );
 }

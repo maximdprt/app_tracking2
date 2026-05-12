@@ -85,7 +85,7 @@ export default function AddMealPage() {
       ...prev,
       {
         id: crypto.randomUUID(),
-        name: pendingFood.name ?? "Aliment",
+        name: pendingFood.name ?? pendingFood.nom ?? "Aliment",
         foodItemId: pendingFood.id,
         grams: pendingGrams,
         caloriesPer100g: per100.calories,
@@ -221,7 +221,7 @@ export default function AddMealPage() {
                   }`}
                 >
                   <div>
-                    <p className="text-sm font-medium">{food.name}</p>
+                    <p className="text-sm font-medium">{food.name ?? food.nom}</p>
                     {food.category ? (
                       <p className="text-[10px] text-muted">{food.category}</p>
                     ) : null}
