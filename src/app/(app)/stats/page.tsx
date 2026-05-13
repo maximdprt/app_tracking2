@@ -67,7 +67,6 @@ const CHART_THEME = {
 } as const;
 
 const CHART_GRID = CHART_THEME.grid.stroke;
-const CHART_TICK = CHART_THEME.axis.fill;
 const CHART_LINE = CHART_THEME.stroke;
 
 export default function StatsPage() {

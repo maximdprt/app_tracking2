@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
-import type { Meal, MealIngredient, MealWithIngredients } from "@/types/domain";
+import type { Meal, MealWithIngredients } from "@/types/domain";
 
 type Client = SupabaseClient<Database>;
 type MealInsert = Database["public"]["Tables"]["meals"]["Insert"];

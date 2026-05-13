@@ -10,7 +10,7 @@ export function useToday() {
   const mealsQuery = useMeals();
   const sessionsQuery = useWorkoutSessions();
 
-  const meals = mealsQuery.data?.meals ?? [];
+  const meals = useMemo(() => mealsQuery.data?.meals ?? [], [mealsQuery.data?.meals]);
   const sessions = sessionsQuery.data ?? [];
   const profile = profileQuery.data;
 
