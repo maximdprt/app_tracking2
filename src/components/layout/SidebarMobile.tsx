@@ -42,7 +42,7 @@ export function SidebarMobile() {
       >
         <Menu className="h-5 w-5" />
       </button>
-      <Sheet open={open} onOpenChange={setOpen} side="left" title="Lift">
+      <Sheet open={open} onOpenChange={setOpen} side="left" title="ASCEND">
         <p className="mb-3 md-label-medium text-muted">Navigation</p>
         <nav className="flex flex-col gap-1">
           {links.map((link) => {

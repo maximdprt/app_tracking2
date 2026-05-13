@@ -189,7 +189,7 @@ export default function HabitsMatrixPage() {
         <Card>
           <CardHeader>
             <CardTitle>Aucune habitude</CardTitle>
-            <CardDescription>Importe les 8 routines Lift par défaut.</CardDescription>
+            <CardDescription>Importe les 8 routines ASCEND par défaut.</CardDescription>
           </CardHeader>
           <Button onClick={() => seedMutation.mutate()} loading={seedMutation.isPending}>
             <Plus className="h-4 w-4" /> Initialiser

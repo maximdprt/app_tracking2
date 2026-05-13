@@ -6,9 +6,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <section className="hidden border-r border-border bg-[radial-gradient(circle_at_30%_20%,color-mix(in_srgb,var(--lift-text-primary)_10%,transparent)_0%,transparent_55%)] p-12 lg:flex lg:flex-col lg:justify-between">
         <Link href="/" className="text-xl font-semibold tracking-tight">
           <span className="mr-2 inline-grid h-7 w-7 place-items-center rounded-lg bg-primary text-black">
-            L
+            A
           </span>
-          Lift
+          ASCEND
         </Link>
         <div className="space-y-6">
           <h1 className="max-w-xl text-5xl font-semibold leading-tight tracking-tight">
@@ -26,7 +26,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </p>
         </div>
         <div className="text-xs text-muted">
-          © {new Date().getFullYear()} Lift — Construit avec rigueur.
+          © {new Date().getFullYear()} ASCEND — Construit avec rigueur.
         </div>
       </section>
       <section className="flex min-h-screen items-center justify-center p-6 lg:min-h-0">

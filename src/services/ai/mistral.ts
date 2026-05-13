@@ -13,7 +13,7 @@ const MODEL = "mistral-large-latest";
 /** Token budget conservateur : on garde les N derniers échanges pour rester < 8k tokens. */
 const MAX_HISTORY_TURNS = 12;
 
-const SYSTEM_PROMPT = `Tu es LIFT Coach, un assistant coach sportif et nutritionnel professionnel.
+const SYSTEM_PROMPT = `Tu es ASCEND Coach, un assistant coach sportif et nutritionnel professionnel.
 
 ## Règles absolues
 - Tu analyses UNIQUEMENT les données fournies dans le contexte JSON. Tu n'inventes aucune valeur.

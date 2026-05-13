@@ -22,10 +22,10 @@ const jetbrainsMono = JetBrains_Mono({
 
 /**
  * Satoshi via Fontshare — usage personnel OK.
- * Usage commercial (ex. Lift Premium) : licence Indian Type Foundry ou alternative (ex. Plus Jakarta Sans).
+ * Usage commercial (ex. ASCEND Premium) : licence Indian Type Foundry ou alternative (ex. Plus Jakarta Sans).
  */
 export const metadata: Metadata = {
-  title: "Lift — Discipline. Performance. Clarté.",
+  title: "ASCEND — Discipline. Performance. Clarté.",
   description: "Ton coach fitness et nutrition intelligent.",
 };
 

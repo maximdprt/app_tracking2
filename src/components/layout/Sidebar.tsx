@@ -42,9 +42,9 @@ export function Sidebar({ email }: SidebarProps) {
           className="group flex items-center gap-3 rounded-lg py-1 pr-3 transition-colors hover:bg-surface-2"
         >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-on-primary md-elevation-1 md-title-medium">
-            L
+            A
           </span>
-          <span className="md-title-large text-text">Lift</span>
+          <span className="md-title-large text-text">ASCEND</span>
         </Link>
       </div>
 

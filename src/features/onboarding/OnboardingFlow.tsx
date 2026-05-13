@@ -193,7 +193,7 @@ export function OnboardingFlow() {
                 className="mt-1 accent-primary"
               />
               <span>
-                J&apos;accepte les conditions Lift et comprends comment mes données sont traitées (RGPD).
+                J&apos;accepte les conditions ASCEND et comprends comment mes données sont traitées (RGPD).
               </span>
             </label>
             <label className="flex gap-3 text-text-soft">

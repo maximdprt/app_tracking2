@@ -153,7 +153,7 @@ export default function ProfilePage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "lift-export.json";
+      a.download = "ascend-export.json";
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -394,14 +394,14 @@ export default function ProfilePage() {
             Déconnexion
           </Button>
           <ConfirmDialog
-            title="Supprimer toutes mes données Lift ?"
+            title="Supprimer toutes mes données ASCEND ?"
             description="Ton compte restera mais repas, séances, profil détaillé et préférences locales seront effacés. Pour supprimer définitivement le compte chez ton hébergeur (Auth), utilise l’outil de ton fournisseur."
             confirmLabel={purgeMutation.isPending ? "…" : "Tout effacer"}
             onConfirm={() => purgeMutation.mutate()}
             trigger={
               <Button variant="danger" loading={purgeMutation.isPending}>
                 <Trash2 className="h-4 w-4 stroke-[1.5]" />
-                Effacer mes données Lift
+                Effacer mes données ASCEND
               </Button>
             }
           />
